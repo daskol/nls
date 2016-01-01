@@ -185,7 +185,7 @@ contains
         real(dp), intent(in), dimension(2 * klu + 1, n) :: op
 
         complex(dp), parameter :: i = (0.0, 1.0)
-        real(dp), parameter :: sign = 1.0, a = 1.13636363636, b = 2.83e-13
+        real(dp), parameter :: sign = 1.0, a = 1.13636363636, b = 0.283
         real(dp), dimension(n) :: p, u_sqr
         real(dp), dimension(n) :: v_real, v_imag, u_real, u_imag
 
@@ -216,7 +216,7 @@ contains
         complex(dp) :: t
         complex(dp), dimension(n) :: k1, k2, k3, k4
         real(dp), dimension(n) :: x, x_exp
-        real(dp), parameter :: mu = 1.88326209187e+11, p_0 = 4.4e-13
+        real(dp), parameter :: mu = 6.84931506849, p_0 = 1.87
 
         do i = 1, n
             x(i) = (i - 1) * dx
