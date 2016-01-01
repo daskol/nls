@@ -1,0 +1,9 @@
+# Ignore shared objects
+*.so
+# Ignore objects
+*.o
+# Ignore binaries
+test_nls
+solve
+# Ignore fortran module files
+*.mod
