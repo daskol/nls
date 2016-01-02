@@ -37,7 +37,7 @@ contains
         implicit none
 
         logical, intent(inout) :: success
-        integer, parameter :: dp = selected_real_kind(15, 307)
+        integer, parameter :: dp = selected_real_kind(6, 37)
         integer, parameter :: m = 5, n = 7
         real(dp), parameter :: tolerance = 1.0e-6
         real(dp), dimension(m) :: row
@@ -91,10 +91,35 @@ contains
         implicit none
 
         logical, intent(inout) :: success
-
-        success = success .and. .true.
+        integer, parameter :: dp = selected_real_kind(6, 37), n = 7, m = 5
+        integer :: i, j
+        real(dp), parameter :: h = 0.01, tolerance = 1.0e-0
+        real(dp), dimension(m, n) :: op, ans
+        logical, dimension(m, n) :: equlity
 
         print *, 'Testing make_laplacian_o5():'
+
+        ans = transpose(reshape((/                                                                                             &
+                 0.00000000,     0.00000000, -1666.66666667, -1250.00000000,  -833.33333333,  -694.44444444,  -625.00000000, &
+                 0.00000000, 26666.66666667, 13333.33333333, 10000.00000000,  8888.88888889,  8333.33333333,  8000.00000000, &
+            -25000.00000000,-12083.33333333,-12500.00000000,-12500.00000000,-12500.00000000,-12500.00000000,-12500.00000000, &
+                0.000000000,  3333.33333333,  4444.44444444,  5000.00000000,  5333.33333333,  5555.55555555,     0.00000000, &
+                0.000000000,  -138.88888888,  -208.33333333,  -250.00000000,  -277.77777777,     0.00000000,     0.00000000  &
+        /), (/ 7, 5 /)))!shape(ans)))
+
+        call make_laplacian_o5(n, h, op)
+
+        equlity = abs(op - ans) <= tolerance
+
+        do i = 1, m
+            print *, equlity(i, :)
+            print *, ans(i, :)
+            print *, op(i, :)
+            do j = 1, n
+                success = success .and. equlity(i, j)
+            end do
+        end do
+
         print *, 'Success: ', success
         print *
     end subroutine test_make_laplacian_o5
@@ -127,7 +152,7 @@ contains
         implicit none
 
         logical, intent(inout) :: success
-        integer, parameter :: dp = selected_real_kind(15, 307)
+        integer, parameter :: dp = selected_real_kind(6, 37)
         integer, parameter :: m = 5, n = 7, klu = 2
         real(dp), parameter :: sign = 1.0, tolerance = 1.0e-6
         real(dp), dimension(m) :: row
@@ -216,7 +241,7 @@ contains
         implicit none
 
         logical, intent(inout) :: success
-        integer, parameter :: dp = selected_real_kind(15, 307)
+        integer, parameter :: dp = selected_real_kind(6, 37)
         integer, parameter :: n = 7, iters = 1, order = 5
         complex(dp), dimension(n) :: u
         real(dp), parameter :: dt = 0.00001, dx = 0.01

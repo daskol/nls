@@ -7,21 +7,23 @@
 program solve
     use nls
 
-    call test_solve_nls()
+    integer, parameter :: sp = selected_real_kind(6, 37)
+    integer, parameter :: dp = selected_real_kind(15, 307)
+
+    call solve_equation()
 
 contains
 
-    subroutine test_solve_nls()
+    subroutine solve_equation()
         implicit none
 
-        integer, parameter :: dp = selected_real_kind(15, 307)
-        integer, parameter :: n = 1000, iters = 100000, order = 5
-        complex(dp), dimension(n) :: u
-        real(dp), parameter :: dt = 0.00001, dx = 0.01
+        integer, parameter :: n = 100, iters = 100000, order = 5
+        complex(sp), dimension(n) :: u
+        real(sp), parameter :: dt = 0.000001, dx = 0.001
 
         call solve_nls(dt, dx, n, order, iters, u)
 
         print *, real(conjg(u) * u)
-    end subroutine
+    end subroutine solve_equation
 
 end program solve
