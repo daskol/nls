@@ -225,7 +225,7 @@ contains
 
         do i = 1, n
             x(i) = (i - 1) * dx
-            x_exp(i) = p_0 * exp(- (x(i) - 10.0) ** 2 / (2 * mu))
+            x_exp(i) = p_0 * exp(- (x(i) - 0.0) ** 2 / (2 * mu))
         end do
 
         klu = (order - 1) / 2

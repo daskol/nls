@@ -17,7 +17,7 @@ contains
     subroutine solve_equation()
         implicit none
 
-        integer, parameter :: n = 100, iters = 100000, order = 5
+        integer, parameter :: n = 200, iters = 10000000, order = 5
         complex(sp), dimension(n) :: u
         real(sp), parameter :: dt = 0.000001, dx = 0.001
 

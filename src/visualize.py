@@ -13,7 +13,7 @@ def visualize(filename='solution'):
     with open(filename) as f:
         u = [float(x) for x in f.read().split()]
     
-    n, h = len(u), 0.1
+    n, h = len(u), 0.001
     plot(arange(0.0, n * h, h), u, label=filename)
 
 def main():
