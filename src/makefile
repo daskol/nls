@@ -4,23 +4,28 @@ CC = gcc
 TARGET = solve
 TARGETLIB = nls
 
-OBJECTDIR = ../obj
-CFLAGS = -O3 -Wall -J $(OBJECTDIR)
+OBJECTSDIR = ../obj
+CFLAGS = -O3 -Wall -J $(OBJECTSDIR)
 LFLAGS = -std=f95 -lblas
-
 
 SOURCES = nls.f95 \
 		  solve.f95
 OBJECTS = $(SOURCES:.f95=.o)
 
-all: checkdir
-	$(FC) -c $(CFLAGS) $(SOURCES)
-	$(FC) $(LFLAGS) -o $(TARGET) -J $(OBJECTDIR) $(OBJECTS)
+vpath %.o ../obj
 
-checkdir: $(OBJECTDIR)
+all: checkdir $(TARGET)
 
-$(OBJECTDIR):
+$(TARGET): $(addprefix $(OBJECTSDIR)/, $(OBJECTS))
+	$(FC) -L../obj $(LFLAGS) -o $(TARGET) -J $(OBJECTSDIR) $^
+
+checkdir: $(OBJECTSDIR)
+
+$(OBJECTSDIR):
 	mkdir $@
+
+$(OBJECTSDIR)/%.o: %.f95
+	$(FC) -c $(CFLAGS) -o $(OBJECTSDIR)/$@ $<
 
 install:
 
@@ -29,6 +34,8 @@ glue:
 	f2py2 -lblas -c nls.f95 -m $(TARGETLIB)
 
 clean:
-	rm -rf *.mod $(OBJECTS) *.so $(TARGET)
+	rm -rfv $(patsubst %, $(OBJECTSDIR)/%, $(OBJECTS))
+	rm -rfv $(TARGETLIB).so $(TARGET)
 
-.SUFFIXES: .f95 
+.PHONY: all clean
+.SUFFIXES: .f95 .o

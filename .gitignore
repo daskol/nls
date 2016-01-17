@@ -5,5 +5,7 @@
 # Ignore binaries
 test_nls
 solve
+# Ignore object files directory
+obj/
 # Ignore fortran module files
 *.mod
