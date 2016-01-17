@@ -15,6 +15,7 @@ module nls
     public :: make_banded_matrix
     public :: make_laplacian_o3, make_laplacian_o5, make_laplacian_o7, make_laplacian
     public :: rgbmv
+    public :: pumping
     public :: hamiltonian
     public :: runge_kutta
     public :: solve_nls
