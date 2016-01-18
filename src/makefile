@@ -4,8 +4,12 @@ CC = gcc
 TARGET = solve
 TARGETLIB = nls
 
-OBJECTSDIR = ../obj
-CFLAGS = -O3 -Wall -J $(OBJECTSDIR)
+BINDIR = ../bin
+OBJDIR = ../obj
+TARGETDIR = $(BINDIR)
+DIRS = $(BINDIR) $(OBJDIR)
+
+CFLAGS = -O3 -Wall -J $(OBJDIR)
 LFLAGS = -std=f95 -lblas
 
 SOURCES = nls.f95 \
@@ -14,28 +18,31 @@ OBJECTS = $(SOURCES:.f95=.o)
 
 vpath %.o ../obj
 
-all: checkdir $(TARGET)
+all: checkdirs $(TARGET)
 
-$(TARGET): $(addprefix $(OBJECTSDIR)/, $(OBJECTS))
-	$(FC) -L../obj $(LFLAGS) -o $(TARGET) -J $(OBJECTSDIR) $^
+$(TARGET): $(addprefix $(OBJDIR)/, $(OBJECTS))
+	$(FC) -L../obj $(LFLAGS) -o $(TARGETDIR)/$(TARGET) -J $(OBJDIR) $^
 
-checkdir: $(OBJECTSDIR)
+checkdirs: $(DIRS)
 
-$(OBJECTSDIR):
+$(OBJDIR):
 	mkdir $@
 
-$(OBJECTSDIR)/%.o: %.f95
-	$(FC) -c $(CFLAGS) -o $(OBJECTSDIR)/$@ $<
+$(BINDIR):
+	mkdir $@
+
+$(OBJDIR)/%.o: %.f95
+	$(FC) -c $(CFLAGS) -o $(OBJDIR)/$@ $<
 
 install:
 
-
-glue:
+glue: checkdirs
 	f2py2 -lblas -c nls.f95 -m $(TARGETLIB)
+	@mv -v {,$(TARGETDIR)/}$(TARGETLIB).so
 
 clean:
-	rm -rfv $(patsubst %, $(OBJECTSDIR)/%, $(OBJECTS))
-	rm -rfv $(TARGETLIB).so $(TARGET)
+	rm -rfv $(patsubst %, $(OBJDIR)/%, $(OBJECTS) $(TARGET).mod)
+	rm -rfv $(addprefix $(TARGETDIR)/, $(TARGETLIB).so $(TARGET))
 
-.PHONY: all clean
+.PHONY: all checkdirs clean install glue
 .SUFFIXES: .f95 .o
