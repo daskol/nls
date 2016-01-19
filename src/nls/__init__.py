@@ -12,7 +12,7 @@ from pprint import pprint
 from time import time
 from numpy import array, exp, arange, ones, zeros
 from scipy.io import loadmat, savemat
-from matplotlib.pyplot import plot, show, title, xlabel, ylabel, subplot, legend, xlim
+from matplotlib.pyplot import plot, show, title, xlabel, ylabel, subplot, legend, xlim, ylim, contourf
 from native import nls
 
 
@@ -150,29 +150,28 @@ class Solution(object):
         u = (self.solution.conj() * self.solution).real  # density profile
         n = self.coeffs[11] *  p / (self.coeffs[12] + self.coeffs[13] * u)
 
-        subplot(1, 3, 1)
-        plot(x, p, label='p = {0}'.format(self.pumping.power))
-        xlim((0, 20))
-        legend(loc='best')
-        title('Pumping.')
-        xlabel('r')
-        ylabel('p')
+        def rect_plot(subplot_number, value, label, name, labelx, labely, xmax=20):
+            subplot(2, 3, subplot_number)
+            plot(x, p, label=label)
+            xlim((0, xmax))
+            legend(loc='best')
+            title(name)
+            xlabel(labelx)
+            ylabel(labely)
 
-        subplot(1, 3, 2)
-        plot(x, u, label='')
-        xlim((0, 20))
-        legend(loc='best')
-        title('Density distribution of BEC.')
-        xlabel('r')
-        ylabel('u')
+        rect_plot(1, p, 'pumping', 'Pumping profile.', 'r', 'p')
+        rect_plot(2, u, 'density', 'Density distribution of BEC.', 'r', 'u')
+        rect_plot(3, n, 'reservoir', 'Density distribution of reservoir.', 'r', 'n')
 
-        subplot(1, 3, 3)
-        plot(x, n, label='')
-        xlim((0, 20))
-        legend(loc='best')
-        title('Density distribution of reservoir.')
-        xlabel('r')
-        ylabel('u')
+        def polar_plot(subplot_number, value, xmax=20):
+            subplot(2, 3, subplot_number, polar=True)
+            theta = arange(0, 2 * 3.14 + 0.1, 0.1)
+            contourf(theta, x, array([p for _ in theta]).T)
+            ylim((0, xmax))
+
+        polar_plot(4, p)
+        polar_plot(5, u)
+        polar_plot(6, n)
 
         show()
 
