@@ -13,3 +13,5 @@ obj/
 *.pyc
 # Ignore zip-files
 *.zip
+# Ignore mat-files
+*.mat

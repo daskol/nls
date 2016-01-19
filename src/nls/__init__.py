@@ -10,6 +10,7 @@ __all__ = ['native']
 
 from pprint import pprint
 from time import time
+from datetime import datetime
 from numpy import array, exp, arange, ones, zeros
 from scipy.io import loadmat, savemat
 from matplotlib.pyplot import plot, show, title, xlabel, ylabel, subplot, legend, xlim, ylim, contourf
@@ -64,8 +65,6 @@ class Model(object):
 
     def __init__(self, *args, **kwargs):
         pprint(kwargs)
-        if 'original_params' in kwargs:
-            pprint(kwargs['original_params'])
         self.solution = Solution(kwargs['dt'], kwargs['dx'], kwargs['num_nodes'], kwargs['order'], kwargs['num_iters'],
                              kwargs['pumping'], kwargs['original_params'])
         self.solver = Solver(self.solution)
@@ -73,11 +72,28 @@ class Model(object):
     def solve(self):
         return self.solver()
 
-    def store(self):
-        pass
+    def store(self, filename=None, label='', desc='', date=datetime.now()):
+        """Store object to mat-file. TODO: determine format specification
+        """
+        filename = filename if filename else str(date).replace(' ', '_') + '.mat'
 
-    def restore(self):
-        pass
+        matfile = {}
+        matfile['desc'] = desc
+        matfile['label'] = label
+        matfile['originals'] = {}
+
+        savemat(filename, matfile)
+
+    def restore(self, filename):
+        """Restore object from mat-file. TODO: determine format specification
+        """
+        matfile = loadmat(filename)
+
+        self.desc = str(matfile['desc'][0]) if matfile['desc'].size else ''
+        self.label = str(matfile['label'][0]) if matfile['label'].size else ''
+        self.originals = {}
+
+        return self
 
 
 class Solution(object):
@@ -92,7 +108,7 @@ class Solution(object):
         self.num_iters = num_iters
         self.pumping = pumping
         self.solution = None
-        self.original_params = originals
+        self.originals = originals
         self.coeffs = zeros(23)
         self.elapsed_time = 0.0
 
@@ -175,11 +191,39 @@ class Solution(object):
 
         show()
 
-    def store(self):
-        pass
+    def store(self, filename=None, label='', desc='', date=datetime.now()):
+        """Store object to mat-file. TODO: determine format specification
+        """
+        filename = filename if filename else str(date).replace(' ', '_') + '.mat'
 
-    def restore(self):
-        pass
+        matfile = {}
+        matfile['desc'] = desc
+        matfile['dimlesses'] = self.coeffs
+        matfile['elapsed_time'] = self.elapsed_time
+        matfile['label'] = label
+        matfile['originals'] = self.originals
+        matfile['pumping'] = self.getPumping()
+        matfile['solution'] = self.solution
+
+        savemat(filename, matfile)
+
+    def restore(self, filename):
+        """Restore object from mat-file. TODO: determine format specification
+        """
+        matfile = loadmat(filename)
+
+        self.desc = str(matfile['desc'][0]) if matfile['desc'].size else ''
+        self.coeffs = matfile['dimlesses'].T
+        self.elapsed_time = matfile['elapsed_time']
+        self.label = str(matfile['label'][0]) if matfile['label'].size else ''
+        self.originals = {}
+        self.solution = matfile['solution'].T
+
+        return self
+
+    def report(self):
+        message = 'Elapsed in {0} seconds with {1} iteration on {2} grid nodes.'
+        print(message.format(self.elapsed_time, self.num_iters, self.num_nodes))
 
 
 class Solver(object):
@@ -200,6 +244,7 @@ class Solver(object):
             self.solution.getPumping(),
             self.solution.getCoefficients()))
         self.elapsed_time += time()
+        self.solution.setElapsedTime(self.elapsed_time)
         return self.solution
 
 
