@@ -168,7 +168,7 @@ class Solution(object):
 
         def rect_plot(subplot_number, value, label, name, labelx, labely, xmax=20):
             subplot(2, 3, subplot_number)
-            plot(x, p, label=label)
+            plot(x, value, label=label)
             xlim((0, xmax))
             legend(loc='best')
             title(name)
@@ -182,7 +182,7 @@ class Solution(object):
         def polar_plot(subplot_number, value, xmax=20):
             subplot(2, 3, subplot_number, polar=True)
             theta = arange(0, 2 * 3.14 + 0.1, 0.1)
-            contourf(theta, x, array([p for _ in theta]).T)
+            contourf(theta, x, array([value for _ in theta]).T)
             ylim((0, xmax))
 
         polar_plot(4, p)
