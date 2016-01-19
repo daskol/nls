@@ -208,12 +208,12 @@ contains
         v = cmplx(v_real, v_imag, sp)
     end subroutine
 
-    subroutine runge_kutta(dt, dx, t0, u0, op, n, order, iters, u, pumping, coeffs)
+    subroutine runge_kutta(dt, t0, u0, op, n, order, iters, u, pumping, coeffs)
         implicit none
 
         integer, parameter :: sp = selected_real_kind(6, 37)
         integer, intent(in) :: n, order, iters
-        real(sp), intent(in) :: dt, dx, t0
+        real(sp), intent(in) :: dt, t0
         real(sp), intent(in), dimension(order, n) :: op
         complex(sp), intent(in), dimension(n) :: u0
         complex(sp), intent(out), dimension(n) :: u
@@ -279,7 +279,6 @@ contains
         real(sp), intent(in) :: dt, dx
         integer, intent(in) :: n, order, iters
         complex(sp), intent(out), dimension(n) :: u
-        ! TODO: remove optional mutator that intoduced to maintain consistence
         real(sp), intent(in), dimension(n) :: pumping
         real(sp), intent(in), dimension(23) :: coeffs
 
@@ -290,7 +289,7 @@ contains
         u0 = 0.1
 
         call make_laplacian(n, order, dx, op)
-        call runge_kutta(dt, dx, t0, u0, op, n, order, iters, u, pumping, coeffs)
+        call runge_kutta(dt, t0, u0, op, n, order, iters, u, pumping, coeffs)
     end subroutine solve_nls
 
 end module nls
