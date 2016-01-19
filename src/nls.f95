@@ -1,9 +1,7 @@
-!
 !   nls.f95
-!
-!   (c) Daniel Bershatsky, 2015
-!
-
+!   Computational core of the project. Define routines that solve Non-Linear Schrodinger equation.
+!   (c) Daniel Bershatsky, 2015-2016
+!   See LISENCE for details.
 module nls
     implicit none
 
@@ -22,6 +20,28 @@ module nls
 
 contains
 
+    !   \brief Make banded matrix from a row. Banded matrix representation corresponds to BLAS-2 documentation. Memory
+    !   usage O(nm), time complexity O(nm).
+    !
+    !   \param[in] n
+    !   \verbatim
+    !       Size of square banded matrix `mat`.
+    !   \endverbatim
+    !
+    !   \param[in] m
+    !   \verbatim
+    !       Length of `row`.
+    !   \endverbatim
+    !
+    !   \param[in] row
+    !   \verbatim
+    !       Row that composes banded matrix.
+    !   \endverbatim
+    !
+    !   \param[out] mat
+    !   \verbatim
+    !       Banded matrix as a Fortran array of shape (m, n).
+    !   \endverbatim
     pure subroutine make_banded_matrix(n, m, row, mat)        
         implicit none
 
@@ -132,6 +152,23 @@ contains
         op = h
     end subroutine make_laplacian_o7
 
+    !   \brief Make laplacian matrix that approximates laplacian operator in axial symmetric case on a given grid and
+    !   given approximation. TODO: implement approximation of order 3 and 7.
+    !
+    !   \param[in] n
+    !   \verbatim
+    !       Size of square banded matrix `op`.
+    !   \endverbatim
+    !
+    !   \param[in] m
+    !   \verbatim
+    !       Order of approximation.
+    !   \endverbatim
+    !
+    !   \param[out] op
+    !   \verbatim
+    !       Banded matrix of size `n` that approximates laplacian operator in order `m`.
+    !   \endverbatim
     subroutine make_laplacian(n, m, h, op)
         implicit none
 
@@ -151,6 +188,7 @@ contains
         end if
     end subroutine make_laplacian
 
+    !   \brief Wrapper of BLAS-2 function `sgbmv` which is matvec implementation for banded matrix.
     subroutine rgbmv(x, u, sign, op, klu, n) ! reduced gbmv()
         implicit none
 
@@ -164,6 +202,33 @@ contains
         call sgbmv('N', n, n, klu, klu, sign, op, 2 * klu + 1, x, 1, 1.0, u, 1)
     end subroutine rgbmv
 
+    !   \brief Calculate density of revervoir particles with given pumping profile and condensate density.
+    !
+    !   \param[in] pumping
+    !   \verbatim
+    !       Pumping profile on spacial grid.
+    !   \endverbatim
+    !
+    !   \param[in] coeffs
+    !   \verbatim
+    !       Contains coefficients of NLS equation with reservoir. Each coefficient coresponds to each term of NLS
+    !       equation or exciton-polariton revervoir. See `solve_nls`.
+    !   \endverbatim
+    !
+    !   \param[in] u_sqr
+    !   \verbatim
+    !       Squared absolute value of psi-function.
+    !   \endverbatim
+    !
+    !   \param[out] r
+    !   \verbatim
+    !       Density of revervoir particles.
+    !   \endverbatim
+    !
+    !   \param[in] n
+    !   \verbatim
+    !       Number of nodes of spacial grid.
+    !   \endverbatim
     subroutine revervoir(pumping, coeffs, u_sqr, r, n)
         implicit none
 
@@ -177,6 +242,44 @@ contains
         r = coeffs(12) * pumping  / (coeffs(13) + coeffs(14) * u_sqr)
     end subroutine
 
+    !   \brief Calculate action of hamiltonian operator on function defined on a grid with a given pumping and
+    !   condensate density.
+    !
+    !   \param[in] pumping
+    !   \verbatim
+    !       Pumping profile on spacial grid.
+    !   \endverbatim
+    !
+    !   \param[in] coeffs
+    !   \verbatim
+    !       Contains coefficients of NLS equation with reservoir. Each coefficient coresponds to each term of NLS
+    !       equation or exciton-polariton revervoir. See `solve_nls`.
+    !   \endverbatim
+    !
+    !   \param[in] u
+    !   \verbatim
+    !       Psi-function on which hamiltonian operator acts.
+    !   \endverbatim
+    !
+    !   \param[out] v
+    !   \verbatim
+    !       Result of application of hamiltonian operator on the right hand side.
+    !   \endverbatim
+    !
+    !   \param[out] op
+    !   \verbatim
+    !       Banded laplacian representation of order `klu` and size `n`. See `make_laplacian`.
+    !   \endverbatim
+    !
+    !   \param[in] klu
+    !   \verbatim
+    !       Order of laplacian approximation.
+    !   \endverbatim
+    !
+    !   \param[in] n
+    !   \verbatim
+    !       Number of nodes of spacial grid.
+    !   \endverbatim
     subroutine hamiltonian(pumping, coeffs, u, v, op, klu, n)
         implicit none
 
@@ -208,6 +311,59 @@ contains
         v = cmplx(v_real, v_imag, sp)
     end subroutine
 
+    !   \brief Yet another Runge-Kutta of order 4 implementation with matrix-valeud right hand side. The criterion of
+    !   break is steady state solution which is not passed explicitly.
+    !
+    !   \param[in] dt
+    !   \verbatim
+    !       Time step.
+    !   \endverbatim
+    !
+    !   \param[in] t0
+    !   \verbatim
+    !       Initial time.
+    !   \endverbatim
+    !
+    !   \param[in] u0
+    !   \verbatim
+    !       Initial solution.
+    !   \endverbatim
+    !
+    !   \param[in] op
+    !   \verbatim
+    !       Banded laplacian representation of order `order` and size `n`. See `make_laplacian`.
+    !   \endverbatim
+    !
+    !   \param[in] n
+    !   \verbatim
+    !       Number of grid nodes.
+    !   \endverbatim
+    !
+    !   \param[in] order
+    !   \verbatim
+    !       Order of laplacian approximation.
+    !   \endverbatim
+    !
+    !   \param[in] iters
+    !   \verbatim
+    !       Number of iterations.
+    !   \endverbatim
+    !
+    !   \param[out] u
+    !   \verbatim
+    !       Psi-function that solves NLS equation with reservoir.
+    !   \endverbatim
+    !
+    !   \param[in] pumping
+    !   \verbatim
+    !       Pumping profile on spacial grid.
+    !   \endverbatim
+    !
+    !   \param[in] coeffs
+    !   \verbatim
+    !       Contains coefficients of NLS equation with reservoir. Each coefficient coresponds to each term of NLS
+    !       equation or exciton-polariton revervoir. See `solve_nls`.
+    !   \endverbatim
     subroutine runge_kutta(dt, t0, u0, op, n, order, iters, u, pumping, coeffs)
         implicit none
 
@@ -239,9 +395,9 @@ contains
         end do
     end subroutine runge_kutta
 
-    !
-    !  \brief Solve Non-Linear Schrodinger equation in axial symmentric geometry
-    !  \author Daniel Bershatsky
+    !   \brief Solve Non-Linear Schrodinger equation in axial symmentric geometry. It is based on Runge-Kutta method of
+    !   order 4 with laplacian approximation order that passed as argument. Initial solution is uniform everywhere on
+    !   the grid.
     !
     !   \param[in] dt
     !   \verbatim
@@ -249,29 +405,52 @@ contains
     !   \endverbatim
     !
     !   \param[in] dx
+    !   \verbatim
+    !       Spartial step.
+    !   \endverbatim
+    !
     !   \param[in] n
+    !   \verbatim
+    !       Number of grid nodes.
+    !   \endverbatim
+    !
     !   \param[in] order
+    !   \verbatim
+    !       Order of laplacian approximation.
+    !   \endverbatim
+    !
     !   \param[in] iters
+    !   \verbatim
+    !       Number of iterations.
+    !   \endverbatim
+    !
     !   \param[out] u
+    !   \verbatim
+    !       Psi-function that solves NLS equation with reservoir.
+    !   \endverbatim
+    !
     !   \param[in] pumping
+    !   \verbatim
+    !       Pumping profile on spacial grid.
+    !   \endverbatim
+    !
     !   \param[in] coeffs
     !   \verbatim
     !       Contains coefficients of NLS equation with reservoir. Each coefficient coresponds to each term of NLS
     !       equation or exciton-polariton revervoir.
-    !       Coefficient 1 corresponds to i \partial_t term.
-    !       Coefficient 2 corresponds to - \nabla^2 term.
-    !       Coefficient 3 corresponds to i n \psi term.
-    !       Coefficient 4 corresponds to - i \psi term.
-    !       Coefficient 5 corresponds to |\psi|^3 term.
-    !       Coefficient 6 corresponds to n \psi term.
-    !       Coefficient 11 corresponds to \partial_t term of reservoire equation.
-    !       Coefficient 12 corresponds to P term of reservoire equation.
-    !       Coefficient 13 corresponds to - n term of reservoire equation.
-    !       Coefficient 14 corresponds to - n |\psi|^2 term of reservoire equation.
-    !       Coefficient 15 corresponds to \nabla^2 term of reservoire equation.
-    !       The coresspondence is induced by Wouters&Carusotto, 2007.
+    !       Coefficient 1 corresponds to `i \partial_t` term.
+    !       Coefficient 2 corresponds to `-\nabla^2` term.
+    !       Coefficient 3 corresponds to `i n \psi` term.
+    !       Coefficient 4 corresponds to `-i \psi` term.
+    !       Coefficient 5 corresponds to `|\psi|^2 \psi` term.
+    !       Coefficient 6 corresponds to `n \psi` term.
+    !       Coefficient 11 corresponds to `\partial_t` term of reservoire equation.
+    !       Coefficient 12 corresponds to `P term of reservoire equation.
+    !       Coefficient 13 corresponds to `-n` term of reservoire equation.
+    !       Coefficient 14 corresponds to `-n |\psi|^2` term of reservoire equation.
+    !       Coefficient 15 corresponds to `\nabla^2` term of reservoire equation.
+    !       The coresspondence is induced sequensially with equations in Wouters&Carusotto, 2007.
     !   \endverbatim
-    !
     subroutine solve_nls(dt, dx, n, order, iters, u, pumping, coeffs)
         implicit none
 
