@@ -9,3 +9,7 @@ solve
 obj/
 # Ignore fortran module files
 *.mod
+# Ignore compiled python binaries
+*.pyc
+# Ignore zip-files
+*.zip

@@ -1,8 +1,11 @@
 FC = gfortran
 CC = gcc
 
+ZIP = zip
+
 TARGET = solve
-TARGETLIB = nls
+TARGETLIB = native
+VERSION = 0.1.0-dev
 
 BINDIR = ../bin
 OBJDIR = ../obj
@@ -36,9 +39,13 @@ $(OBJDIR)/%.o: %.f95
 
 install:
 
+pylib:
+	$(ZIP) nls-$(VERSION).zip nls/ nls/native.so nls/*.py
+
 glue: checkdirs
 	f2py2 -lblas -c nls.f95 -m $(TARGETLIB)
-	@mv -v {,$(TARGETDIR)/}$(TARGETLIB).so
+	@cp -v $(TARGETLIB).so nls/
+	@mv -v {,$(BINDIR)/}$(TARGETLIB).so
 
 clean:
 	rm -rfv $(patsubst %, $(OBJDIR)/%, $(OBJECTS) $(TARGET).mod)
