@@ -10,9 +10,9 @@ __all__ = ['native']
 
 from pprint import pprint
 from time import time
-from numpy import array, exp, arange
+from numpy import array, exp, arange, ones, zeros
 from scipy.io import loadmat, savemat
-from matplotlib.pyplot import plot, show
+from matplotlib.pyplot import plot, show, title, xlabel, ylabel, subplot, legend, xlim
 from native import nls
 
 
@@ -66,7 +66,8 @@ class Model(object):
         pprint(kwargs)
         if 'original_params' in kwargs:
             pprint(kwargs['original_params'])
-        self.solution = Solution(kwargs['dt'], kwargs['dx'], kwargs['num_nodes'], kwargs['order'], kwargs['num_iters'])
+        self.solution = Solution(kwargs['dt'], kwargs['dx'], kwargs['num_nodes'], kwargs['order'], kwargs['num_iters'],
+                             kwargs['pumping'], kwargs['original_params'])
         self.solver = Solver(self.solution)
 
     def solve(self):
@@ -81,13 +82,34 @@ class Model(object):
 
 class Solution(object):
 
-    def __init__(self, dt, dx, num_nodes, order, num_iters):
+    t0 = 1.0e+0 # seconds
+
+    def __init__(self, dt, dx, num_nodes, order, num_iters, pumping, originals):
         self.dt = dt
         self.dx = dx
         self.order = order
         self.num_nodes = num_nodes
         self.num_iters = num_iters
+        self.pumping = pumping
         self.solution = None
+        self.original_params = originals
+        self.coeffs = zeros(23)
+        self.elapsed_time = 0.0
+
+        # NLS equation coeficients
+        self.coeffs[0] = 1.0  # \partial_t
+        self.coeffs[1] = 1.0  # \nabla^2
+        self.coeffs[2] = originals['R'] / (4.0 * originals['tilde_g'])  # 
+        self.coeffs[3] = originals['gamma'] * Solution.t0 / 2  # linear damping
+        self.coeffs[4] = 1.0  # nonlinearity
+        self.coeffs[5] = 1.0  # interaction to reservoir
+
+        # Reservoir equation coefficients
+        self.coeffs[10] = 0.0  # \parital_t
+        self.coeffs[11] = 2.0 * originals['tilde_g'] * Solution.t0 / originals['gamma_R']  # pumping coefficient
+        self.coeffs[12] = 1.0  # damping
+        self.coeffs[13] = originals['R'] / (originals['gamma_R'] * originals['g'])  # interaction term
+        self.coeffs[14] = 0.0  # diffusive term
 
     def getTimeStep(self):
         return self.dt
@@ -104,11 +126,17 @@ class Solution(object):
     def getNumberOfIterations(self):
         return self.num_iters
 
-    def getElapsedTime(self):
-        return self.elapsed_time
+    def getPumping(self):
+        return self.pumping(arange(0, self.dx * self.num_nodes, self.dx))
+
+    def getCoefficients(self):
+        return ones(23)
 
     def getSolution(self):
         return self.solution
+
+    def getElapsedTime(self):
+        return self.elapsed_time
 
     def setSolution(self, solution):
         self.solution = solution
@@ -118,8 +146,34 @@ class Solution(object):
 
     def visualize(self):
         x = arange(0.0, self.dx * self.num_nodes, self.dx)
-        y = (self.solution.conj() * self.solution).real
-        plot(x, y)
+        p = self.pumping(x)  # pumping profile
+        u = (self.solution.conj() * self.solution).real  # density profile
+        n = self.coeffs[11] *  p / (self.coeffs[12] + self.coeffs[13] * u)
+
+        subplot(1, 3, 1)
+        plot(x, p, label='p = {0}'.format(self.pumping.power))
+        xlim((0, 20))
+        legend(loc='best')
+        title('Pumping.')
+        xlabel('r')
+        ylabel('p')
+
+        subplot(1, 3, 2)
+        plot(x, u, label='')
+        xlim((0, 20))
+        legend(loc='best')
+        title('Density distribution of BEC.')
+        xlabel('r')
+        ylabel('u')
+
+        subplot(1, 3, 3)
+        plot(x, n, label='')
+        xlim((0, 20))
+        legend(loc='best')
+        title('Density distribution of reservoir.')
+        xlabel('r')
+        ylabel('u')
+
         show()
 
     def store(self):
@@ -142,9 +196,10 @@ class Solver(object):
         self.solution.setSolution(nls.solve_nls(
             self.solution.getTimeStep(),
             self.solution.getSpatialStep(),
-            self.solution.getNumberOfNodes(),
             self.solution.getApproximationOrder(),
-            self.solution.getNumberOfIterations()))
+            self.solution.getNumberOfIterations(),
+            self.solution.getPumping(),
+            self.solution.getCoefficients()))
         self.elapsed_time += time()
         return self.solution
 
@@ -153,13 +208,13 @@ class GaussianPumping(object):
     """Steady state gaussian pumping with given origin, maximum power, and decay.
     """
 
-    def __init__(self, power=1.0, x0=0.0, variation=1.0):
+    def __init__(self, power=1.0, x0=0.0, variation=5.0):
         self.power = power
         self.x0 = x0
         self.variation = variation
 
     def __call__(self, x, t=None):
-        return self.power * exp( - (x - self.x0) ** 2 / (2.0 * variation))
+        return self.power * exp( - (x - self.x0) ** 2 / (2.0 * self.variation))
 
     def __str__(self):
         return str(repr(self))
@@ -177,20 +232,19 @@ def test():
         dx = 1.0e-1,
         dt = 1.0e-3,
         t0 = 0.0,
-        u0 = 1.0,
+        u0 = 0.1,
         order = 5,
         num_nodes = 1000,
-        num_iters = 1000,
-        pumping = GaussianPumping(),
+        num_iters = 100000,
+        pumping = GaussianPumping(power=3.0, variation=6.84931506849),
         original_params = {
             'R': 0.05,
             'gamma': 0.566,
-            'g': 0.001,
+            'g': 1.0e-3,
             'tilde_g': 0.011,
             'gamma_R': 10,
         },
         dimless_params = {
-            'a': 0.0,
         })
     solution = model.solve()
     solution.visualize()
