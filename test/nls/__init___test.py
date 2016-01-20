@@ -35,9 +35,14 @@ def test():
         },
         dimless_params = {
         })
+
     solution = model.solve()
     solution.visualize()
+    solution.show()
     solution.store()
+    solution.report()
+
+    animation = model.animate('condensation-point.mp4')
 
 
 if __name__ == '__main__':

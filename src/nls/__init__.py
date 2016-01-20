@@ -13,7 +13,8 @@ from time import time
 from datetime import datetime
 from numpy import array, exp, arange, ones, zeros
 from scipy.io import loadmat, savemat
-from matplotlib.pyplot import plot, show, title, xlabel, ylabel, subplot, legend, xlim, ylim, contourf
+from matplotlib import animation
+from matplotlib.pyplot import figure, plot, show, title, xlabel, ylabel, subplot, legend, xlim, ylim, contourf, hold
 from native import nls
 
 
@@ -69,8 +70,17 @@ class Model(object):
                              kwargs['pumping'], kwargs['original_params'])
         self.solver = Solver(self.solution)
 
-    def solve(self):
-        return self.solver()
+    def solve(self, num_iters=None):
+        return self.solver(num_iters)
+
+    def animate(self, filename):
+        writer = animation.writers['ffmpeg'](fps=15, metadata={title: 'Exciton-polariton condensation.'})
+        fig = figure()
+        with writer.saving(fig, filename, 100):
+            for i in xrange(101):
+                solution = self.solve(i * 100)
+                solution.visualize()
+                writer.grab_frame()
 
     def store(self, filename=None, label='', desc='', date=datetime.now()):
         """Store object to mat-file. TODO: determine format specification
@@ -154,6 +164,9 @@ class Solution(object):
     def getElapsedTime(self):
         return self.elapsed_time
 
+    def setNumberOfIterations(self, num_iters):
+        self.num_iters = num_iters
+
     def setSolution(self, solution):
         self.solution = solution
 
@@ -168,6 +181,7 @@ class Solution(object):
 
         def rect_plot(subplot_number, value, label, name, labelx, labely, xmax=20):
             subplot(2, 3, subplot_number)
+            hold(False)
             plot(x, value, label=label)
             xlim((0, xmax))
             legend(loc='best')
@@ -180,6 +194,7 @@ class Solution(object):
         rect_plot(3, n, 'reservoir', 'Density distribution of reservoir.', 'r', 'n')
 
         def polar_plot(subplot_number, value, xmax=20):
+            hold(False)
             subplot(2, 3, subplot_number, polar=True)
             theta = arange(0, 2 * 3.14 + 0.1, 0.1)
             contourf(theta, x, array([value for _ in theta]).T)
@@ -189,6 +204,7 @@ class Solution(object):
         polar_plot(5, u)
         polar_plot(6, n)
 
+    def show(self):
         show()
 
     def store(self, filename=None, label='', desc='', date=datetime.now()):
@@ -234,7 +250,11 @@ class Solver(object):
         self.solution = solution
         self.elapsed_time = 0.0
 
-    def __call__(self):
+    def __call__(self, num_iters=None):
+        if num_iters:
+            print('here')
+            self.solution.setNumberOfIterations(num_iters)
+        print('Number of iterations:', self.solution.getNumberOfIterations())
         self.elapsed_time = -time()
         self.solution.setSolution(nls.solve_nls(
             self.solution.getTimeStep(),

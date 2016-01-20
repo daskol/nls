@@ -15,3 +15,8 @@ obj/
 *.zip
 # Ignore mat-files
 *.mat
+# Ignore video files and gif's
+*.gif
+*.avi
+*.mp4
+*.mpg
