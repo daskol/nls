@@ -424,11 +424,6 @@ contains
     !       Number of iterations.
     !   \endverbatim
     !
-    !   \param[out] u
-    !   \verbatim
-    !       Psi-function that solves NLS equation with reservoir.
-    !   \endverbatim
-    !
     !   \param[in] pumping
     !   \verbatim
     !       Pumping profile on spacial grid.
@@ -451,21 +446,29 @@ contains
     !       Coefficient 15 corresponds to `\nabla^2` term of reservoire equation.
     !       The coresspondence is induced sequensially with equations in Wouters&Carusotto, 2007.
     !   \endverbatim
-    subroutine solve_nls(dt, dx, n, order, iters, u, pumping, coeffs)
+    !
+    !   \param[in] u_0
+    !   \verbatim
+    !       Initial psi-function that solves NLS equation with reservoir.
+    !   \endverbatim
+    !
+    !   \param[out] u
+    !   \verbatim
+    !       Psi-function that solves NLS equation with reservoir.
+    !   \endverbatim
+    subroutine solve_nls(dt, dx, n, order, iters, pumping, coeffs, u0, u)
         implicit none
 
         integer, parameter :: sp = selected_real_kind(6, 37)
         real(sp), intent(in) :: dt, dx
         integer, intent(in) :: n, order, iters
-        complex(sp), intent(out), dimension(n) :: u
         real(sp), intent(in), dimension(n) :: pumping
         real(sp), intent(in), dimension(23) :: coeffs
+        complex(sp), intent(in), dimension(n) :: u0
+        complex(sp), intent(out), dimension(n) :: u
 
-        complex(sp), dimension(n) :: u0
         real(sp), parameter :: t0 = 0.0
         real(sp), dimension(order, n) :: op
-
-        u0 = 0.1
 
         call make_laplacian(n, order, dx, op)
         call runge_kutta(dt, t0, u0, op, n, order, iters, u, pumping, coeffs)

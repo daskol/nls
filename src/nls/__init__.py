@@ -45,16 +45,20 @@ class Problem(object):
             #kwargs = {**params, **kwargs}  # python 3
 
         kwargs['model'] == 'default' if 'model' not in kwargs else kwargs['model']
-        kwargs['dx'] = 1.0e-1 if 'dx' not in kwargs else kwargs['dx']
-        kwargs['dt'] = 1.0e-3 if 'dt' not in kwargs else kwargs['dt']
-        kwargs['t0'] = 0.0e+0 if 't0' not in kwargs else kwargs['t0']
-        kwargs['u0'] = 1.0e-1 if 'u0' not in kwargs else kwargs['u0']
-        kwargs['order'] = 5 if 'order' not in kwargs else kwargs['order']
-        kwargs['pumping'] = GaussianPumping() if 'pumping' not in kwargs else kwargs['pumping']
-        kwargs['num_nodes'] = 1000 if 'num_nodes' not in kwargs else kwargs['num_nodes']
-        kwargs['num_iters'] = 100000 if 'num_iters' not in kwargs else kwargs['num_iters']
 
         if 'model' in kwargs and kwargs['model'] == 'default':
+            kwargs['dx'] = 1.0e-1 if 'dx' not in kwargs else kwargs['dx']
+            kwargs['dt'] = 1.0e-3 if 'dt' not in kwargs else kwargs['dt']
+            kwargs['t0'] = 0.0e+0 if 't0' not in kwargs else kwargs['t0']
+            kwargs['u0'] = 1.0e-1 if 'u0' not in kwargs else kwargs['u0']
+            kwargs['order'] = 5 if 'order' not in kwargs else kwargs['order']
+            kwargs['pumping'] = GaussianPumping() if 'pumping' not in kwargs else kwargs['pumping']
+            kwargs['num_nodes'] = 1000 if 'num_nodes' not in kwargs else kwargs['num_nodes']
+            kwargs['num_iters'] = 100000 if 'num_iters' not in kwargs else kwargs['num_iters']
+
+            if type(kwargs['u0']) in (int, float, complex):
+                kwargs['u0'] = kwargs['u0'] * ones(kwargs['num_nodes']) 
+
             return Model(**kwargs)
         else:
             raise Exception('Unknown model passed!')
@@ -67,7 +71,7 @@ class Model(object):
     def __init__(self, *args, **kwargs):
         pprint(kwargs)
         self.solution = Solution(kwargs['dt'], kwargs['dx'], kwargs['num_nodes'], kwargs['order'], kwargs['num_iters'],
-                             kwargs['pumping'], kwargs['original_params'])
+                             kwargs['pumping'], kwargs['original_params'], kwargs['u0'])
         self.solver = Solver(self.solution)
 
     def solve(self, num_iters=None):
@@ -75,10 +79,12 @@ class Model(object):
 
     def animate(self, filename):
         writer = animation.writers['ffmpeg'](fps=15, metadata={title: 'Exciton-polariton condensation.'})
-        fig = figure()
-        with writer.saving(fig, filename, 100):
+        dpi = 100
+        fig = figure(figsize=(16, 9), dpi=dpi)
+        with writer.saving(fig, filename, dpi):
             for i in xrange(101):
-                solution = self.solve(i * 100)
+                solution = self.solve(100)
+                solution.setInitialSolution(solution.getSolution())
                 solution.visualize()
                 writer.grab_frame()
 
@@ -110,13 +116,14 @@ class Solution(object):
 
     t0 = 1.0e+0 # seconds
 
-    def __init__(self, dt, dx, num_nodes, order, num_iters, pumping, originals):
+    def __init__(self, dt, dx, num_nodes, order, num_iters, pumping, originals, init_solution):
         self.dt = dt
         self.dx = dx
         self.order = order
         self.num_nodes = num_nodes
         self.num_iters = num_iters
         self.pumping = pumping
+        self.init_sol = init_solution
         self.solution = None
         self.originals = originals
         self.coeffs = zeros(23)
@@ -158,6 +165,9 @@ class Solution(object):
     def getCoefficients(self):
         return ones(23)
 
+    def getInitialSolution(self):
+        return self.init_sol
+
     def getSolution(self):
         return self.solution
 
@@ -166,6 +176,9 @@ class Solution(object):
 
     def setNumberOfIterations(self, num_iters):
         self.num_iters = num_iters
+
+    def setInitialSolution(self, solution):
+        self.init_sol = solution
 
     def setSolution(self, solution):
         self.solution = solution
@@ -252,9 +265,8 @@ class Solver(object):
 
     def __call__(self, num_iters=None):
         if num_iters:
-            print('here')
             self.solution.setNumberOfIterations(num_iters)
-        print('Number of iterations:', self.solution.getNumberOfIterations())
+
         self.elapsed_time = -time()
         self.solution.setSolution(nls.solve_nls(
             self.solution.getTimeStep(),
@@ -262,9 +274,11 @@ class Solver(object):
             self.solution.getApproximationOrder(),
             self.solution.getNumberOfIterations(),
             self.solution.getPumping(),
-            self.solution.getCoefficients()))
+            self.solution.getCoefficients(),
+            self.solution.getInitialSolution()))
         self.elapsed_time += time()
         self.solution.setElapsedTime(self.elapsed_time)
+
         return self.solution
 
 

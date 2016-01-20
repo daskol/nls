@@ -19,11 +19,11 @@ contains
 
         integer, parameter :: n = 1000, iters = 100000, order = 5
         integer :: i
-        complex(sp), dimension(n) :: u
         real(sp), parameter :: dt = 0.001, dx = 0.1
         real(sp), parameter :: R = 0.05, g = 1.0e-3, gamma = 0.566, gamma_R = 10, tilde_g = 0.11
         real(sp), dimension(n) :: pumping
         real(sp), dimension(23) :: coeffs  ! TODO: fix magic number `23`
+        complex(sp), dimension(n) :: u0, u
 
         ! Build pumping profile
         do i = 1, n
@@ -47,8 +47,11 @@ contains
         coeffs(13) = R / (gamma_R * g)  ! interaction term
         coeffs(14) = 0.0  ! diffusive term
 
+        ! Inital solution
+        u0 = 0.1
+
         ! Solve
-        call solve_nls(dt, dx, n, order, iters, u, pumping, coeffs)
+        call solve_nls(dt, dx, n, order, iters, pumping, coeffs, u0, u)
 
         print *, real(conjg(u) * u)
     end subroutine solve_equation
