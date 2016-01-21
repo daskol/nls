@@ -11,6 +11,8 @@ module nls
     integer, parameter :: dp = selected_real_kind(15, 307)
 
     public :: make_banded_matrix
+    public :: clear_first_row_of_derivative
+    public :: divide_derivative_on_radius
     public :: make_laplacian_o3, make_laplacian_o5, make_laplacian_o7, make_laplacian
     public :: rgbmv
     public :: revervoir
@@ -74,6 +76,45 @@ contains
         end do
     end subroutine make_banded_matrix
 
+    pure subroutine clear_first_row_of_derivative(n, m, L1)
+        implicit none
+
+        integer, parameter :: sp = selected_real_kind(6, 37)
+        integer, intent(in) :: n
+        integer, intent(in) :: m
+        real(sp), intent(out), dimension(m, n) :: L1
+
+        integer :: i
+
+        ! Here (m + 1) / 2 is middle row of banded materix L1
+        do i = 1, (m + 1) / 2
+            L1(i, (m + 1) / 2 - i + 1) = 0.0
+        end do
+    end subroutine clear_first_row_of_derivative
+
+    pure subroutine divide_derivative_on_radius(n, m, h, L1)
+        implicit none
+
+        integer, parameter :: sp = selected_real_kind(6, 37)
+        integer, intent(in) :: n
+        integer, intent(in) :: m
+        real(sp), intent(in) :: h
+        real(sp), intent(out), dimension(m, n) :: L1
+
+        integer :: i, j, row
+
+        ! Row k = i + j - k0: k = 0,1,2,...,n - 1, where k0: m = 2 k0 - 3. Cause is sum (i + j) is invarian of row.
+        do i = 1, m
+            do j = 1, n
+                row = i + j - (m + 3) / 2
+
+                if (row > 0) then
+                    L1(i, j) = L1(i, j) / (row * h)
+                end if
+            end do
+        end do
+    end subroutine divide_derivative_on_radius
+
     pure subroutine make_laplacian_o3(n, h, op)
         implicit none
 
@@ -83,7 +124,26 @@ contains
         real(sp), intent(in) :: h
         real(sp), intent(out), dimension(m, n) :: op
 
-        op = h
+        real(sp), dimension(m) :: row1d, row2d
+        real(sp), dimension(m, n) :: L1, L2
+        real(sp) :: dx1, dx2
+
+        dx1 = 2 * h ** 1
+        dx2 = 1 * h ** 2
+
+        row1d = (/ 1, 0, -1 /) / dx1
+        row2d = (/ 1, -2, 1 /) / dx2
+
+        call make_banded_matrix(n, m, row1d, L1)
+        call make_banded_matrix(n, m, row2d, L2)
+
+        L2(2, 1) = 2 * L2(2, 1)  ! node #0, row #0
+        L2(1, 2) = 4 * L2(1, 2)  ! node #0, row #0
+
+        call clear_first_row_of_derivative(n, m, L1)
+        call divide_derivative_on_radius(n, m, h, L1)
+
+        op = L1 + L2
     end subroutine make_laplacian_o3
 
     subroutine make_laplacian_o5(n, h, op)
@@ -95,7 +155,6 @@ contains
         real(sp), intent(in) :: h
         real(sp), intent(out), dimension(m, n) :: op
 
-        integer :: i, j
         real(sp), dimension(m) :: row1d, row2d
         real(sp), dimension(m, n) :: L1, L2
         real(sp) :: dx1, dx2
@@ -115,27 +174,8 @@ contains
         L2(2, 2) = 4 * L2(2, 2)
         L2(1, 3) = 4 * L2(1, 3)
 
-        ! Fill in origin
-        do j = 1, m - 2
-            L1(3 - j + 1, j) = 0.0!L2(3 - j + 1, j)
-        end do
-        do j = 1, m - 1
-            L1(4 - j + 1, j) = L1(4 - j + 1, j) / (1 * h)
-        end do
-
-        ! Fill far away from origin and infinity
-        do i = 1, n - m + 1
-            do j = 1, m
-                L1(m - j + 1, i + j - 1) = L1(m - j + 1, i + j - 1) / ((1 + i) * h)
-            end do
-        end do
-
-        ! Fill tail
-        do i = n - m + 2, n
-            do j = 1, n - i + 1
-                L1(m - j + 1, i + j - 1) = L1(m - j + 1, i + j - 1) / ((i + 1)* h)
-            end do
-        end do
+        call clear_first_row_of_derivative(n, m, L1)
+        call divide_derivative_on_radius(n, m, h, L1)
 
         op = L1 + L2
     end subroutine make_laplacian_o5
@@ -149,7 +189,44 @@ contains
         real(sp), intent(in) :: h
         real(sp), intent(out), dimension(m, n) :: op
 
-        op = h
+        real(sp), dimension(m) :: row1d, row2d
+        real(sp), dimension(m, n) :: L1, L2
+        real(sp) :: dx1, dx2
+
+        dx1 = 60 * h ** 1
+        dx2 = 180 * h ** 2
+
+        row1d = (/ 1, -9, 45, 0, -45, 9, -1/) / dx1
+        row2d = (/ 2, -27, 270, -490, 270, -27, 2 /) / dx2
+
+        call make_banded_matrix(n, m, row1d, L1)
+        call make_banded_matrix(n, m, row2d, L2)
+
+        ! The first row
+        L2(4, 1) = 2 * L2(4, 1)
+        L2(3, 2) = 4 * L2(3, 2)
+        L2(2, 3) = 4 * L2(2, 3)
+        L2(1, 4) = 4 * L2(1, 4)
+
+        ! The second row
+        L2(5, 1) = L2(5, 1)
+        L2(4, 2) = L2(4, 2) - 27.0 / (1.0 * dx2)
+        L2(3, 3) = L2(3, 3) + 2.0 / (1.0 * dx2)
+        L2(2, 4) = L2(2, 4)
+        L2(1, 5) = L2(1, 5)
+
+        ! The third row
+        L2(6, 1) = L2(6, 1)
+        L2(5, 2) = L2(5, 2) + 2.0 / (2.0 * dx2)
+        L2(4, 3) = L2(4, 3)
+        L2(3, 4) = L2(3, 4)
+        L2(2, 5) = L2(2, 5)
+        L2(1, 6) = L2(1, 6)
+
+        call clear_first_row_of_derivative(n, m, L1)
+        call divide_derivative_on_radius(n, m, h, L1)
+
+        op = L1 + L2
     end subroutine make_laplacian_o7
 
     !   \brief Make laplacian matrix that approximates laplacian operator in axial symmetric case on a given grid and
