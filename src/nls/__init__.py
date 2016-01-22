@@ -304,7 +304,7 @@ class OpSubPumping(object):
 
 class AbstractPumping(object):
 
-    def __init__(self):
+    def __init__(self): 
         self.profile = array()
 
     def __add__(self, other):
@@ -336,3 +336,32 @@ class GaussianPumping(AbstractPumping):
 
     def __unicode__ (self):
         return repr(self);
+
+
+class IterationIncreaseAnimation(object):
+
+    def __init__(self, model, frames, step=1):
+        self.elapsed_time = 0.0
+        self.model = model
+        self.frames = frames
+        self.step = step
+        self.writer = animation.writers['ffmpeg'](fps=15, metadata={title: 'Exciton-polariton condensation.'})
+
+    def getElapsedTime(self):
+        return self.elapsed_time
+
+    def animate(self, filename):
+        self.elapsed_time = -time()
+        dpi = 100
+        fig = figure(figsize=(16, 9), dpi=dpi)
+        with self.writer.saving(fig, filename, dpi):
+            for i in xrange(self.frames + 1):
+                solution = self.model.solve(self.step)  # Fix references entanglement
+                solution.setInitialSolution(solution.getSolution())
+                solution.visualize()
+                self.writer.grab_frame()
+        self.elapsed_time += time()
+
+    def report(self):
+        message = 'Elapsed in {0} seconds with {1} frames and {2} step.'
+        print(message.format(self.elapsed_time, self.frames, self.step))

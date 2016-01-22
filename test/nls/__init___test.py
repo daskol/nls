@@ -12,7 +12,7 @@ NLS_MODULE_PATH = '../../src/'
 if NLS_MODULE_PATH not in path:
     path.append(NLS_MODULE_PATH)
 
-from nls import Problem, GaussianPumping
+from nls import Problem, GaussianPumping, IterationIncreaseAnimation
 
 
 def test():
@@ -36,13 +36,17 @@ def test():
         dimless_params = {
         })
 
+    # Obtain steady state solution
     solution = model.solve()
     solution.visualize()
     solution.show()
     solution.store()
     solution.report()
 
-    animation = model.animate('condensation-point.mp4')
+    # Animate solution profile as iterations increase
+    animation = IterationIncreaseAnimation(model, 10, 1)
+    animation.animate('condensation-point.mp4')
+    animation.report()
 
 
 if __name__ == '__main__':
