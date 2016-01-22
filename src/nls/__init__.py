@@ -282,11 +282,45 @@ class Solver(object):
         return self.solution
 
 
-class GaussianPumping(object):
+class OpSumPumping(object):
+
+    def __init__(self, lhs, rhs):
+        self.lhs = lhs
+        self.rhs = rhs
+
+    def __call__(self, x, t=None):
+        return self.lhs(x, t) + self.rhs(x, t)
+
+
+class OpSubPumping(object):
+
+    def __init__(self, lhs, rhs):
+        self.lhs = lhs
+        self.rhs = rhs
+
+    def __call__(self, x, t=None):
+        return self.lhs(x, t) + self.rhs(x, t)
+
+
+class AbstractPumping(object):
+
+    def __init__(self):
+        self.profile = array()
+
+    def __add__(self, other):
+        return OpSumPumping(self, other)
+
+    def __sub__(self, other):
+        return OpSubPumping(self, other)
+
+
+class GaussianPumping(AbstractPumping):
     """Steady state gaussian pumping with given origin, maximum power, and decay.
     """
 
     def __init__(self, power=1.0, x0=0.0, variation=5.0):
+        super(AbstractPumping, self).__init__()
+
         self.power = power
         self.x0 = x0
         self.variation = variation
