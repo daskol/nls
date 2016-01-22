@@ -177,6 +177,9 @@ class Solution(object):
     def setNumberOfIterations(self, num_iters):
         self.num_iters = num_iters
 
+    def setPumping(self, pumping):
+        self.pumping = pumping
+
     def setInitialSolution(self, solution):
         self.init_sol = solution
 
@@ -375,6 +378,28 @@ class IterationIncreaseAnimation(AbstractAnimation):
         with self.writer.saving(fig, filename, dpi):
             for i in xrange(self.frames + 1):
                 solution = self.model.solve(self.step)  # Fix references entanglement
+                solution.setInitialSolution(solution.getSolution())
+                solution.visualize()
+                self.writer.grab_frame()
+        self.elapsed_time += time()
+
+
+class PumpingRadiusIncreaseAnimation(AbstractAnimation):
+
+    def __init__(self, model, frames, step=1):
+        super(PumpingRadiusIncreaseAnimation, self).__init__(model, frames, step)
+
+    def animate(self, filename):
+        self.elapsed_time = -time()
+        dpi = 100
+        fig = figure(figsize=(16, 9), dpi=dpi)
+        with self.writer.saving(fig, filename, dpi):
+            for i in xrange(self.frames + 1):
+                origin = i * self.step
+                pumping = GaussianPumping(power=3.0, x0=+origin, variation=6.84931506849) \
+                       + GaussianPumping(power=3.0, x0=-origin, variation=6.84931506849)
+                self.model.solution.setPumping(pumping)
+                solution = self.model.solve()  # Fix references entanglement
                 solution.setInitialSolution(solution.getSolution())
                 solution.visualize()
                 self.writer.grab_frame()
