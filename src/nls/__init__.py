@@ -69,7 +69,15 @@ class Model(object):
     """
 
     def __init__(self, *args, **kwargs):
-        pprint(kwargs)
+        pprint({
+            'dt': kwargs['dt'],
+            'dx': kwargs['dx'],
+            'order': kwargs['order'],
+            'num_nodes': kwargs['num_nodes'],
+            'num_iters': kwargs['num_iters'],
+            'pumping': kwargs['pumping'],
+            'originals': kwargs['original_params'],
+            })
         self.solution = Solution(kwargs['dt'], kwargs['dx'], kwargs['num_nodes'], kwargs['order'], kwargs['num_iters'],
                              kwargs['pumping'], kwargs['original_params'], kwargs['u0'])
         self.solver = Solver(self.solution)
@@ -113,6 +121,9 @@ class Model(object):
 
 
 class Solution(object):
+    """Object that represents solution of a given model. Also it contains all model parameters and has ability to store
+    and to load solution. TODO: improve design.
+    """
 
     t0 = 1.0e+0 # seconds
 
@@ -306,6 +317,8 @@ class OpSubPumping(object):
 
 
 class AbstractPumping(object):
+    """Base class of pumping tree that define commont interface of pumping objects behavior.
+    """
 
     def __init__(self): 
         self.profile = array()
@@ -342,6 +355,8 @@ class GaussianPumping(AbstractPumping):
 
 
 class AbstractAnimation(object):
+    """Animation base class that contains common method of initialization and rendering video.
+    """
 
     def __init__(self, model, frames, step=1):
         self.elapsed_time = 0.0
