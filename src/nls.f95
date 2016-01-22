@@ -14,6 +14,7 @@ module nls
     public :: clear_first_row_of_derivative
     public :: divide_derivative_on_radius
     public :: make_laplacian_o3, make_laplacian_o5, make_laplacian_o7, make_laplacian
+    public ::  make_laplacian_2d
     public :: rgbmv
     public :: revervoir
     public :: hamiltonian
@@ -202,6 +203,21 @@ contains
         call make_banded_matrix(n, m, row1d, L1)
         call make_banded_matrix(n, m, row2d, L2)
 
+        ! The second row
+        L1(5, 1) = L1(5, 1)
+        L1(4, 2) = L1(4, 2) + 9.0 / dx1
+        L1(3, 3) = L1(3, 3) - 1.0 / dx1
+        L1(2, 4) = L1(2, 4)
+        L1(1, 5) = L1(1, 5)
+
+        ! The third row
+        L1(6, 1) = L1(6, 1)
+        L1(5, 2) = L1(5, 2) - 1.0 / dx1
+        L1(4, 3) = L1(4, 3)
+        L1(3, 4) = L1(3, 4)
+        L1(2, 5) = L1(2, 5)
+        L1(1, 6) = L1(1, 6)
+
         ! The first row
         L2(4, 1) = 2 * L2(4, 1)
         L2(3, 2) = 4 * L2(3, 2)
@@ -210,14 +226,14 @@ contains
 
         ! The second row
         L2(5, 1) = L2(5, 1)
-        L2(4, 2) = L2(4, 2) - 27.0 / (1.0 * dx2)
-        L2(3, 3) = L2(3, 3) + 2.0 / (1.0 * dx2)
+        L2(4, 2) = L2(4, 2) - 27.0 / dx2
+        L2(3, 3) = L2(3, 3) + 2.0 / dx2
         L2(2, 4) = L2(2, 4)
         L2(1, 5) = L2(1, 5)
 
         ! The third row
         L2(6, 1) = L2(6, 1)
-        L2(5, 2) = L2(5, 2) + 2.0 / (2.0 * dx2)
+        L2(5, 2) = L2(5, 2) + 2.0 / dx2
         L2(4, 3) = L2(4, 3)
         L2(3, 4) = L2(3, 4)
         L2(2, 5) = L2(2, 5)
@@ -264,6 +280,32 @@ contains
         else
         end if
     end subroutine make_laplacian
+
+    subroutine make_laplacian_2d(n, m, h, op)
+        implicit none
+
+        integer, parameter :: sp = selected_real_kind(6, 37)
+        integer, intent(in) :: n
+        integer, intent(in) :: m ! order
+        real(sp), intent(in) :: h
+        real(sp), intent(out), dimension(m, n) :: op
+
+        real(sp) :: dx2
+        real(sp), dimension(m) :: left, middle, right
+        real(sp), dimension(3 * m) :: row
+
+        dx2 = 1.0 / h ** 2
+
+        left = (/ 0, 1, 0 /) / dx2
+        middle = (/ 1, -4, 1 /) / dx2
+        right = (/ 0, 1, 0 /) / dx2
+
+        row(0 * m + 1:1 * m) = left
+        row(1 * m + 1:2 * m) = middle
+        row(2 * m + 1:3 * m) = right
+
+        call make_banded_matrix(n * n, 3 * m, row, op)
+    end subroutine make_laplacian_2d
 
     !   \brief Wrapper of BLAS-2 function `sgbmv` which is matvec implementation for banded matrix.
     subroutine rgbmv(x, u, sign, op, klu, n) ! reduced gbmv()
@@ -462,10 +504,10 @@ contains
         t = t0
 
         do i = 1, iters
-            call hamiltonian(pumping, coeffs, u + 0. * dt / 2, k1, op, 2, n)
-            call hamiltonian(pumping, coeffs, u + k1 * dt / 2, k2, op, 2, n)
-            call hamiltonian(pumping, coeffs, u + k2 * dt / 2, k3, op, 2, n)
-            call hamiltonian(pumping, coeffs, u + k3 * dt / 1, k4, op, 2, n)
+            call hamiltonian(pumping, coeffs, u + 0. * dt / 2, k1, op, klu, n)
+            call hamiltonian(pumping, coeffs, u + k1 * dt / 2, k2, op, klu, n)
+            call hamiltonian(pumping, coeffs, u + k2 * dt / 2, k3, op, klu, n)
+            call hamiltonian(pumping, coeffs, u + k3 * dt / 1, k4, op, klu, n)
 
             u = u + (k1 + 2 * k2 + 2 * k3 + k4) * dt / 6
             t = t + dt
