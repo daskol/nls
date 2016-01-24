@@ -4,6 +4,11 @@
 
 Package to solve non-linear Schrodinger equation written with Fortran 95 and Python 2.
 
+### Features
+
+- core written with native Fortran
+- wrapped with Python interaface
+
 ## Usage
 
 ### Fortran executable
@@ -19,11 +24,21 @@ Package to solve non-linear Schrodinger equation written with Fortran 95 and Pyt
 ### Python module
 
 1. Change directory to `src/`
-2. Run `make glue` in order to build python lib in `bin/` directory
-3. Use python to import the module in a way
+2. Run `make glue` in order to build python lib in `bin/` directory that incapsulate native code
+3. Use python to import native module in a way
 
-    from nls import nls
+    from nls.native import nls
     print(nls.__doc__)
+
+4. Or use python to import python wrap in a way
+
+    from nls import Problem
+    model = Problem().model()
+    model.solve()
+    model.visualize()
+    model.show()
+    model.report()
+
 
 ## Testing
 
@@ -32,7 +47,7 @@ Package to solve non-linear Schrodinger equation written with Fortran 95 and Pyt
 1. `make`
 2. `gfortran`
 3. `numpy` with `f2py` extension
-4. `jupythor`
+4. `matplotlib`
 
 ## Credits 
 
