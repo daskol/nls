@@ -13,13 +13,12 @@ module nls
     public :: make_banded_matrix
     public :: clear_first_row_of_derivative
     public :: divide_derivative_on_radius
-    public :: make_laplacian_o3, make_laplacian_o5, make_laplacian_o7, make_laplacian
-    public ::  make_laplacian_2d
-    public :: rgbmv
-    public :: revervoir
-    public :: hamiltonian
-    public :: runge_kutta
-    public :: solve_nls
+    public :: make_laplacian_o3, make_laplacian_o5, make_laplacian_o7, make_laplacian, make_laplacian_2d
+    public :: rgbmv, rbbmv
+    public :: revervoir, revervoir_2d
+    public :: hamiltonian, hamiltonian_2d
+    public :: runge_kutta, runge_kutta_2d
+    public :: solve_nls_1d, solve_nls_2d, solve_nls
 
 contains
 
@@ -281,31 +280,66 @@ contains
         end if
     end subroutine make_laplacian
 
-    subroutine make_laplacian_2d(n, m, h, op)
+    ! TODO: implement high order approximations.
+    subroutine make_laplacian_2d(n, m, h, blocks, orders)
         implicit none
 
-        integer, parameter :: sp = selected_real_kind(6, 37)
-        integer, intent(in) :: n
-        integer, intent(in) :: m ! order
+        integer, intent(in) :: n, m
+        integer, intent(out), dimension(m) :: orders
         real(sp), intent(in) :: h
-        real(sp), intent(out), dimension(m, n) :: op
+        real(sp), intent(out), dimension(2 * m - 1, n) :: blocks
 
         real(sp) :: dx2
-        real(sp), dimension(m) :: left, middle, right
-        real(sp), dimension(3 * m) :: row
+        real(sp), dimension(1) :: left, right
+        real(sp), dimension(3) :: middle
 
         dx2 = 1.0 / h ** 2
 
-        left = (/ 0, 1, 0 /) / dx2
+        left = (/ 1 /) / dx2
         middle = (/ 1, -4, 1 /) / dx2
-        right = (/ 0, 1, 0 /) / dx2
+        right = (/ 1 /) / dx2
 
-        row(0 * m + 1:1 * m) = left
-        row(1 * m + 1:2 * m) = middle
-        row(2 * m + 1:3 * m) = right
+        call make_banded_matrix(n, 1, left, blocks(1:1, :))
+        call make_banded_matrix(n, 3, middle, blocks(2:4, :))
+        call make_banded_matrix(n, 1, right, blocks(5:5, :))
 
-        call make_banded_matrix(n * n, 3 * m, row, op)
+        orders = (/ 0, 1, 0 /)
     end subroutine make_laplacian_2d
+
+    !   \brief Perform one of the matrix-vector operations   y := alpha*A*x + beta*y, or y := alpha*A'*x + beta*y in
+    !   case of block band matrix.
+    !   TODO: support high-order approximations.
+    subroutine rbbmv(x, y, sign, blocks, ms, m, n)
+        implicit none
+
+        integer, intent(in) :: m, n
+        integer, intent(in), dimension(m) :: ms
+        real(sp), intent(in) :: sign
+        real(sp), intent(in), dimension(n * n) :: x
+        real(sp), intent(out), dimension(n * n) :: y
+        real(sp), intent(in), dimension(2 * m - 1, n) :: blocks
+
+        integer :: i
+        integer, dimension(m) :: orders
+
+        orders = (/ 0, 1, 0 /)
+
+        y = 0.0
+
+        i = 1
+        call rgbmv(x((i - 1) * n + 1:(i + 0) * n), y((i - 1) * n + 1:i * n), sign, blocks(2:4, :), ms(2), n)
+        call rgbmv(x((i + 0) * n + 1:(i + 1) * n), y((i - 1) * n + 1:i * n), sign, blocks(5:5, :), ms(3), n)
+
+        do i = 2, n - 1
+            call rgbmv(x((i - 2) * n + 1:(i - 1) * n), y((i - 1) * n + 1:i * n), sign, blocks(1:1, :), ms(1), n)
+            call rgbmv(x((i - 1) * n + 1:(i + 0) * n), y((i - 1) * n + 1:i * n), sign, blocks(2:4, :), ms(2), n)
+            call rgbmv(x((i - 0) * n + 1:(i + 1) * n), y((i - 1) * n + 1:i * n), sign, blocks(5:5, :), ms(3), n)
+        end do
+
+        i = n
+        call rgbmv(x((i - 2) * n + 1:(i - 1) * n), y((i - 1) * n + 1:i * n), sign, blocks(5:5, :), ms(1), n)
+        call rgbmv(x((i - 1) * n + 1:(i - 0) * n), y((i - 1) * n + 1:i * n), sign, blocks(2:4, :), ms(2), n)
+    end subroutine rbbmv
 
     !   \brief Wrapper of BLAS-2 function `sgbmv` which is matvec implementation for banded matrix.
     subroutine rgbmv(x, u, sign, op, klu, n) ! reduced gbmv()
@@ -314,7 +348,7 @@ contains
         integer, parameter :: sp = selected_real_kind(6, 37)
         integer, intent(in) :: n, klu
         real(sp), intent(in), dimension(n) :: x
-        real(sp), intent(out), dimension(n) :: u
+        real(sp), intent(inout), dimension(n) :: u
         real(sp), intent(in), dimension(2 * klu + 1, n) :: op
         real(sp), intent(in) :: sign
 
@@ -592,5 +626,111 @@ contains
         call make_laplacian(n, order, dx, op)
         call runge_kutta(dt, t0, u0, op, n, order, iters, u, pumping, coeffs)
     end subroutine solve_nls
+
+    subroutine solve_nls_1d(dt, dx, n, order, iters, pumping, coeffs, u0, u)
+        implicit none
+
+        integer, parameter :: sp = selected_real_kind(6, 37)
+        real(sp), intent(in) :: dt, dx
+        integer, intent(in) :: n, order, iters
+        real(sp), intent(in), dimension(n, n) :: pumping
+        complex(sp), intent(in), dimension(n, n) :: u0
+        complex(sp), intent(out), dimension(n, n) :: u
+        real(sp), intent(in), dimension(23) :: coeffs
+
+        call solve_nls(dt, dx, n, order, iters, pumping, coeffs, u0, u)
+    end subroutine solve_nls_1d
+
+    subroutine revervoir_2d(pumping, coeffs, u_sqr, r, n)
+        implicit none
+
+        integer, intent(in) :: n
+        real(sp), intent(in), dimension(n * n) :: pumping
+        real(sp), intent(in), dimension(23) :: coeffs
+        real(sp), intent(in), dimension(n * n) :: u_sqr
+        real(sp), intent(out), dimension(n * n) :: r ! actually n(r)
+
+        call revervoir(pumping, coeffs, u_sqr, r, n * n)
+    end subroutine revervoir_2d
+
+    subroutine hamiltonian_2d(pumping, coeffs, u, v, blocks, orders, order, n)
+        implicit none
+
+        integer, intent(in) :: n, order
+        integer, intent(in), dimension(order) :: orders
+        complex(sp), intent(in), dimension(n * n) :: u
+        complex(sp), intent(out), dimension(n * n) :: v
+        real(sp), intent(in), dimension(n * n) :: pumping
+        real(sp), intent(in), dimension(23) :: coeffs
+        real(sp), intent(in), dimension(2 * order - 1, n) :: blocks
+
+        complex(sp), parameter :: i = (0.0, 1.0)
+        real(sp), parameter :: sign = 1.0
+        real(sp), dimension(n) :: r, u_sqr
+        real(sp), dimension(n) :: v_real, v_imag, u_real, u_imag
+
+        u_real = real(u)
+        u_imag = aimag(u)
+        u_sqr = real(conjg(u) * u)
+
+        call revervoir_2d(pumping, coeffs, u_sqr, r, n)
+
+        v_real = (coeffs(3) * r - coeffs(4)) * u_real + (coeffs(5) * u_sqr + coeffs(6) * r) * u_imag
+        v_imag = (coeffs(3) * r - coeffs(4)) * u_imag - (coeffs(5) * u_sqr + coeffs(6) * r) * u_real
+
+        call rbbmv(u_imag, v_real, -sign, blocks, orders, order, n)
+        call rbbmv(u_real, v_imag, +sign, blocks, orders, order, n)
+
+        v = cmplx(v_real, v_imag, sp)
+    end subroutine hamiltonian_2d
+
+    ! Code is almost the same as `runge_kutta`.
+    subroutine runge_kutta_2d(dt, t0, u0, n, blocks, orders, order, iters, u, pumping, coeffs)
+        implicit none
+
+        integer, intent(in) :: n, order, iters
+        integer, intent(in), dimension(order) :: orders
+        real(sp), intent(in) :: dt, t0
+        real(sp), intent(in), dimension(23) :: coeffs
+        real(sp), intent(in), dimension((order + 1) / 2, n) :: blocks
+        real(sp), intent(in), dimension(n * n) :: pumping
+        complex(sp), intent(in), dimension(n * n) :: u0
+        complex(sp), intent(out), dimension(n * n) :: u
+
+        integer :: i
+        real(sp) :: t
+        complex(sp), dimension(n) :: k1, k2, k3, k4
+
+        u = u0
+        t = t0
+
+        do i = 1, iters
+            call hamiltonian_2d(pumping, coeffs, u + 0. * dt / 2, k1, blocks, orders, order, n)
+            call hamiltonian_2d(pumping, coeffs, u + k1 * dt / 2, k2, blocks, orders, order, n)
+            call hamiltonian_2d(pumping, coeffs, u + k2 * dt / 2, k3, blocks, orders, order, n)
+            call hamiltonian_2d(pumping, coeffs, u + k3 * dt / 1, k4, blocks, orders, order, n)
+
+            u = u + (k1 + 2 * k2 + 2 * k3 + k4) * dt / 6
+            t = t + dt
+        end do
+    end subroutine runge_kutta_2d
+
+    subroutine solve_nls_2d(dt, dx, n, order, iters, pumping, coeffs, u0, u)
+        implicit none
+
+        integer, intent(in) :: n, order, iters
+        real(sp), intent(in) :: dt, dx
+        real(sp), intent(in), dimension(n, n) :: pumping
+        real(sp), intent(in), dimension(23) :: coeffs
+        complex(sp), intent(in), dimension(n * n) :: u0
+        complex(sp), intent(out), dimension(n * n) :: u
+
+        integer, dimension(order) :: orders
+        real(sp), parameter :: t0 = 0.0
+        real(sp), dimension((order - 1) / 2) :: blocks
+
+        call make_laplacian_2d(n, 3, dx, blocks, orders)
+        call runge_kutta_2d(dt, t0, u0, n, blocks, orders, order, iters, u, pumping, coeffs)
+    end subroutine solve_nls_2d
 
 end module nls
