@@ -633,9 +633,9 @@ contains
         integer, parameter :: sp = selected_real_kind(6, 37)
         real(sp), intent(in) :: dt, dx
         integer, intent(in) :: n, order, iters
-        real(sp), intent(in), dimension(n, n) :: pumping
-        complex(sp), intent(in), dimension(n, n) :: u0
-        complex(sp), intent(out), dimension(n, n) :: u
+        real(sp), intent(in), dimension(n) :: pumping
+        complex(sp), intent(in), dimension(n) :: u0
+        complex(sp), intent(out), dimension(n) :: u
         real(sp), intent(in), dimension(23) :: coeffs
 
         call solve_nls(dt, dx, n, order, iters, pumping, coeffs, u0, u)
@@ -720,10 +720,10 @@ contains
 
         integer, intent(in) :: n, order, iters
         real(sp), intent(in) :: dt, dx
-        real(sp), intent(in), dimension(n * n) :: pumping
+        real(sp), intent(in), dimension(n, n) :: pumping
         real(sp), intent(in), dimension(23) :: coeffs
-        complex(sp), intent(in), dimension(n * n) :: u0
-        complex(sp), intent(out), dimension(n * n) :: u
+        complex(sp), intent(in), dimension(n, n) :: u0
+        complex(sp), intent(out), dimension(n, n) :: u
 
         integer, dimension(order) :: orders
         real(sp), parameter :: t0 = 0.0
