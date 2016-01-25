@@ -163,8 +163,6 @@ class Solution(object):
     t0 = 1.0e+0 # seconds
 
     def __init__(self, dt, dx, num_nodes, order, num_iters, pumping, originals, init_solution):
-        print(num_nodes)
-        print(init_solution)
         self.dt = dt
         self.dx = dx
         self.order = order
@@ -219,7 +217,7 @@ class Solution(object):
             left = 0.0
             x = linspace(left, right, self.num_nodes)
             grid = meshgrid(x)
-            return linspace(left, right, self.num_nodes)
+            return self.pumping(*grid)
 
     def getCoefficients(self):
         return self.coeffs
