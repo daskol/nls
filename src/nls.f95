@@ -293,7 +293,7 @@ contains
         real(sp), dimension(1) :: left, right
         real(sp), dimension(3) :: middle
 
-        dx2 = 1.0 / h ** 2
+        dx2 = 1.0 * h ** 2
 
         left = (/ 1 /) / dx2
         middle = (/ 1, -4, 1 /) / dx2
@@ -666,8 +666,8 @@ contains
 
         complex(sp), parameter :: i = (0.0, 1.0)
         real(sp), parameter :: sign = 1.0
-        real(sp), dimension(n) :: r, u_sqr
-        real(sp), dimension(n) :: v_real, v_imag, u_real, u_imag
+        real(sp), dimension(n * n) :: r, u_sqr
+        real(sp), dimension(n * n) :: v_real, v_imag, u_real, u_imag
 
         u_real = real(u)
         u_imag = aimag(u)
@@ -692,14 +692,14 @@ contains
         integer, intent(in), dimension(order) :: orders
         real(sp), intent(in) :: dt, t0
         real(sp), intent(in), dimension(23) :: coeffs
-        real(sp), intent(in), dimension((order + 1) / 2, n) :: blocks
+        real(sp), intent(in), dimension(2 * order - 1, n) :: blocks
         real(sp), intent(in), dimension(n * n) :: pumping
         complex(sp), intent(in), dimension(n * n) :: u0
         complex(sp), intent(out), dimension(n * n) :: u
 
         integer :: i
         real(sp) :: t
-        complex(sp), dimension(n) :: k1, k2, k3, k4
+        complex(sp), dimension(n * n) :: k1, k2, k3, k4
 
         u = u0
         t = t0
@@ -720,16 +720,16 @@ contains
 
         integer, intent(in) :: n, order, iters
         real(sp), intent(in) :: dt, dx
-        real(sp), intent(in), dimension(n, n) :: pumping
+        real(sp), intent(in), dimension(n * n) :: pumping
         real(sp), intent(in), dimension(23) :: coeffs
         complex(sp), intent(in), dimension(n * n) :: u0
         complex(sp), intent(out), dimension(n * n) :: u
 
         integer, dimension(order) :: orders
         real(sp), parameter :: t0 = 0.0
-        real(sp), dimension((order - 1) / 2) :: blocks
+        real(sp), dimension(2 * order - 1, n) :: blocks
 
-        call make_laplacian_2d(n, 3, dx, blocks, orders)
+        call make_laplacian_2d(3, 3, dx, blocks, orders)
         call runge_kutta_2d(dt, t0, u0, n, blocks, orders, order, iters, u, pumping, coeffs)
     end subroutine solve_nls_2d
 
