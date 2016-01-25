@@ -175,19 +175,28 @@ class Solution(object):
         self.coeffs = zeros(23)
         self.elapsed_time = 0.0
 
+        hbar = 6.61e-34
+        m_e = 9.1e-31
+        m_0 = 1.0e-5 * m_e
+
+        t0 = 2.0 / originals['gamma']
+        x0 = (hbar * t0 / 2 / m_0) ** 0.5
+        n0 = 2.0 / (originals['R'] * t0)
+        phi0 = 1.0 / (originals['tilde_g'] * n0 * t0)
+
         # NLS equation coeficients
         self.coeffs[0] = 1.0  # \partial_t
         self.coeffs[1] = 1.0  # \nabla^2
-        self.coeffs[2] = originals['R'] / (4.0 * originals['tilde_g'])  # 
-        self.coeffs[3] = originals['gamma'] * Solution.t0 / 2  # linear damping
-        self.coeffs[4] = 1.0  # nonlinearity
+        self.coeffs[2] = 1.0  #1.136#originals['R'] / (4.0 * originals['tilde_g'])  # 
+        self.coeffs[3] = 1.0  # 0.283#originals['gamma'] * Solution.t0 / 2  # linear damping
+        self.coeffs[4] = originals['g'] * t0 * phi0 ** 3  # nonlinearity
         self.coeffs[5] = 1.0  # interaction to reservoir
 
         # Reservoir equation coefficients
         self.coeffs[10] = 0.0  # \parital_t
-        self.coeffs[11] = 2.0 * originals['tilde_g'] * Solution.t0 / originals['gamma_R']  # pumping coefficient
+        self.coeffs[11] = 1.0 / (n0 * originals['gamma_R'])  # pumping coefficient
         self.coeffs[12] = 1.0  # damping
-        self.coeffs[13] = originals['R'] / (originals['gamma_R'] * originals['g'])  # interaction term
+        self.coeffs[13] = originals['R'] * phi0 ** 2 / originals['gamma_R']  # interaction term
         self.coeffs[14] = 0.0  # diffusive term
 
     def getTimeStep(self):

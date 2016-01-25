@@ -20,11 +20,11 @@ def main():
         num_iters = 10000,
         pumping = GaussianPumping(power=3.0, variation=6.84931506849),
         original_params = {
-            'R': 0.05,
-            'gamma': 0.566,
-            'g': 1.0e-3,
-            'tilde_g': 0.011,
-            'gamma_R': 10,
+            'R': 0.0242057488654,
+            'gamma': 0.0242057488654,
+            'g': 0.00162178517398,
+            'tilde_g': 0.0169440242057,
+            'gamma_R': 0.242057488654,
         },
         dimless_params = {
         })
