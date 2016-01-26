@@ -15,9 +15,9 @@ def main():
         dt = 1.0e-3,
         t0 = 0.0,
         u0 = 0.1,
-        order = 5,
+        order = 3,
         num_nodes = 40,
-        num_iters = 10000,
+        num_iters = 1000,
         pumping = GaussianPumping(power=3.0, variation=6.84931506849),
         original_params = {
             'R': 0.0242057488654,
@@ -32,6 +32,8 @@ def main():
     # Obtain steady state solution
     solution = model.solve()
     solution.report()
+    solution.visualize()
+    solution.show()
 
 
 if __name__ == '__main__':

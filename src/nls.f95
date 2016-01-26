@@ -14,7 +14,7 @@ module nls
     public :: clear_first_row_of_derivative
     public :: divide_derivative_on_radius
     public :: make_laplacian_o3, make_laplacian_o5, make_laplacian_o7, make_laplacian, make_laplacian_2d
-    public :: rgbmv, rbbmv
+    public :: rbbmv_o3, rbbmv_o5, rbbmv, rgbmv
     public :: revervoir, revervoir_2d
     public :: hamiltonian, hamiltonian_2d
     public :: runge_kutta, runge_kutta_2d
@@ -290,41 +290,57 @@ contains
         real(sp), intent(out), dimension(2 * m - 1, n) :: blocks
 
         real(sp) :: dx2
-        real(sp), dimension(1) :: left, right
+        real(sp), dimension(1) :: leftleft, left, right, rightright
         real(sp), dimension(3) :: middle
+        real(sp), dimension(5) :: middle5
 
-        dx2 = 1.0 * h ** 2
+        if (m == 3) then
+            dx2 = 1.0 * h ** 2
 
-        left = (/ 1 /) / dx2
-        middle = (/ 1, -4, 1 /) / dx2
-        right = (/ 1 /) / dx2
+            left = (/ 1 /) / dx2
+            middle = (/ 1, -4, 1 /) / dx2
+            right = (/ 1 /) / dx2
 
-        call make_banded_matrix(n, 1, left, blocks(1:1, :))
-        call make_banded_matrix(n, 3, middle, blocks(2:4, :))
-        call make_banded_matrix(n, 1, right, blocks(5:5, :))
+            call make_banded_matrix(n, 1, left, blocks(1:1, :))
+            call make_banded_matrix(n, 3, middle, blocks(2:4, :))
+            call make_banded_matrix(n, 1, right, blocks(5:5, :))
 
-        orders = (/ 0, 1, 0 /)
+            orders = (/ 0, 1, 0 /)
+        else if (m == 5) then
+            dx2 = 12 * h ** 2
+
+            leftleft = (/ -1 /) / dx2
+            left = (/ 16 /) / dx2
+            middle5 = (/ -1, 16, -60, 16, -1 /) / dx2
+            right = (/ 16 /) / dx2
+            rightright = (/ -1 /) / dx2
+
+            call make_banded_matrix(n, 1, leftleft, blocks(1:1, :))
+            call make_banded_matrix(n, 1, left, blocks(2:2, :))
+            call make_banded_matrix(n, 3, middle5, blocks(3:5, :))
+            call make_banded_matrix(n, 1, right, blocks(6:6, :))
+            call make_banded_matrix(n, 1, rightright, blocks(7:7, :))
+
+            orders = (/ 0, 0, 2, 0, 0 /)
+        else if (m == 7) then
+            ! TODO: implementa the senventh-order laplacian approximation
+        end if
     end subroutine make_laplacian_2d
 
     !   \brief Perform one of the matrix-vector operations   y := alpha*A*x + beta*y, or y := alpha*A'*x + beta*y in
     !   case of block band matrix.
     !   TODO: support high-order approximations.
-    subroutine rbbmv(x, y, sign, blocks, ms, m, n)
+    subroutine rbbmv_o3(x, y, sign, blocks, ms, m, n)
         implicit none
 
         integer, intent(in) :: m, n
         integer, intent(in), dimension(m) :: ms
         real(sp), intent(in) :: sign
         real(sp), intent(in), dimension(n * n) :: x
-        real(sp), intent(out), dimension(n * n) :: y
+        real(sp), intent(inout), dimension(n * n) :: y
         real(sp), intent(in), dimension(2 * m - 1, n) :: blocks
 
         integer :: i
-        integer, dimension(m) :: orders
-
-        orders = (/ 0, 1, 0 /)
-
-        y = 0.0
 
         i = 1
         call rgbmv(x((i - 1) * n + 1:(i + 0) * n), y((i - 1) * n + 1:i * n), sign, blocks(2:4, :), ms(2), n)
@@ -339,6 +355,68 @@ contains
         i = n
         call rgbmv(x((i - 2) * n + 1:(i - 1) * n), y((i - 1) * n + 1:i * n), sign, blocks(5:5, :), ms(1), n)
         call rgbmv(x((i - 1) * n + 1:(i - 0) * n), y((i - 1) * n + 1:i * n), sign, blocks(2:4, :), ms(2), n)
+    end subroutine rbbmv_o3
+
+    subroutine rbbmv_o5(x, y, sign, blocks, ms, m, n)
+        implicit none
+
+        integer, intent(in) :: m, n
+        integer, intent(in), dimension(m) :: ms
+        real(sp), intent(in) :: sign
+        real(sp), intent(in), dimension(n * n) :: x
+        real(sp), intent(inout), dimension(n * n) :: y
+        real(sp), intent(in), dimension(2 * m - 1, n) :: blocks
+
+        integer :: i
+
+        i = 1
+        call rgbmv(x((i - 1) * n + 1:(i + 0) * n), y((i - 1) * n + 1:i * n), sign, blocks(3:5, :), ms(3), n)
+        call rgbmv(x((i + 0) * n + 1:(i + 1) * n), y((i - 1) * n + 1:i * n), sign, blocks(6:6, :), ms(4), n)
+        call rgbmv(x((i + 1) * n + 1:(i + 2) * n), y((i - 1) * n + 1:i * n), sign, blocks(7:7, :), ms(5), n)
+
+        i = 2
+        call rgbmv(x((i - 2) * n + 1:(i - 1) * n), y((i - 1) * n + 1:i * n), sign, blocks(2:2, :), ms(2), n)
+        call rgbmv(x((i - 1) * n + 1:(i + 0) * n), y((i - 1) * n + 1:i * n), sign, blocks(3:5, :), ms(3), n)
+        call rgbmv(x((i + 0) * n + 1:(i + 1) * n), y((i - 1) * n + 1:i * n), sign, blocks(6:6, :), ms(4), n)
+        call rgbmv(x((i + 1) * n + 1:(i + 2) * n), y((i - 1) * n + 1:i * n), sign, blocks(7:7, :), ms(5), n)
+
+        do i = 3, n - 2
+            call rgbmv(x((i - 3) * n + 1:(i - 2) * n), y((i - 1) * n + 1:i * n), sign, blocks(1:1, :), ms(1), n)
+            call rgbmv(x((i - 2) * n + 1:(i - 1) * n), y((i - 1) * n + 1:i * n), sign, blocks(2:2, :), ms(2), n)
+            call rgbmv(x((i - 1) * n + 1:(i + 0) * n), y((i - 1) * n + 1:i * n), sign, blocks(3:5, :), ms(3), n)
+            call rgbmv(x((i - 0) * n + 1:(i + 1) * n), y((i - 1) * n + 1:i * n), sign, blocks(6:6, :), ms(4), n)
+            call rgbmv(x((i + 1) * n + 1:(i + 2) * n), y((i - 1) * n + 1:i * n), sign, blocks(7:7, :), ms(5), n)
+        end do
+
+        i = n - 1
+        call rgbmv(x((i - 3) * n + 1:(i - 2) * n), y((i - 1) * n + 1:i * n), sign, blocks(1:1, :), ms(1), n)
+        call rgbmv(x((i - 2) * n + 1:(i - 1) * n), y((i - 1) * n + 1:i * n), sign, blocks(2:2, :), ms(2), n)
+        call rgbmv(x((i - 1) * n + 1:(i - 0) * n), y((i - 1) * n + 1:i * n), sign, blocks(3:5, :), ms(3), n)
+        call rgbmv(x((i - 0) * n + 1:(i + 1) * n), y((i - 1) * n + 1:i * n), sign, blocks(6:6, :), ms(4), n)
+
+        i = n
+        call rgbmv(x((i - 3) * n + 1:(i - 2) * n), y((i - 1) * n + 1:i * n), sign, blocks(1:1, :), ms(1), n)
+        call rgbmv(x((i - 2) * n + 1:(i - 1) * n), y((i - 1) * n + 1:i * n), sign, blocks(2:2, :), ms(2), n)
+        call rgbmv(x((i - 1) * n + 1:(i + 0) * n), y((i - 1) * n + 1:i * n), sign, blocks(3:5, :), ms(3), n)
+    end subroutine rbbmv_o5
+
+    subroutine rbbmv(x, y, sign, blocks, ms, m, n)
+        implicit none
+
+        integer, intent(in) :: m, n
+        integer, intent(in), dimension(m) :: ms
+        real(sp), intent(in) :: sign
+        real(sp), intent(in), dimension(n * n) :: x
+        real(sp), intent(inout), dimension(n * n) :: y
+        real(sp), intent(in), dimension(2 * m - 1, n) :: blocks
+
+        if (m == 3) then
+            call rbbmv_o3(x, y, sign, blocks, ms, m, n)
+        else if (m == 5) then
+            call rbbmv_o5(x, y, sign, blocks, ms, m, n)
+        else if (m == 7) then
+            ! TODO: implement this
+        end if
     end subroutine rbbmv
 
     !   \brief Wrapper of BLAS-2 function `sgbmv` which is matvec implementation for banded matrix.
@@ -645,12 +723,22 @@ contains
         implicit none
 
         integer, intent(in) :: n
-        real(sp), intent(in), dimension(n * n) :: pumping
+        real(sp), intent(in), dimension(n, n) :: pumping
         real(sp), intent(in), dimension(23) :: coeffs
-        real(sp), intent(in), dimension(n * n) :: u_sqr
-        real(sp), intent(out), dimension(n * n) :: r ! actually n(r)
+        real(sp), intent(in), dimension(n, n) :: u_sqr
+        real(sp), intent(out), dimension(n, n) :: r ! actually n(r)
 
-        call revervoir(pumping, coeffs, u_sqr, r, n * n)
+        real(sp), dimension(n * n) :: pumping2
+        real(sp), dimension(n * n) :: u_sqr2
+        real(sp), dimension(n * n) :: r2 ! actually n(r)
+
+        pumping2 = reshape(pumping, (/ n * n /))
+        u_sqr2 = reshape(u_sqr, (/ n * n /))
+        r2 = reshape(r, (/ n * n /))
+
+        call revervoir(pumping2, coeffs, u_sqr2, r2, n * n)
+
+        r = reshape(r2, (/ n, n /))
     end subroutine revervoir_2d
 
     subroutine hamiltonian_2d(pumping, coeffs, u, v, blocks, orders, order, n)
@@ -658,16 +746,16 @@ contains
 
         integer, intent(in) :: n, order
         integer, intent(in), dimension(order) :: orders
-        complex(sp), intent(in), dimension(n * n) :: u
-        complex(sp), intent(out), dimension(n * n) :: v
-        real(sp), intent(in), dimension(n * n) :: pumping
+        complex(sp), intent(in), dimension(n, n) :: u
+        complex(sp), intent(out), dimension(n, n) :: v
+        real(sp), intent(in), dimension(n, n) :: pumping
         real(sp), intent(in), dimension(23) :: coeffs
         real(sp), intent(in), dimension(2 * order - 1, n) :: blocks
 
         complex(sp), parameter :: i = (0.0, 1.0)
         real(sp), parameter :: sign = 1.0
-        real(sp), dimension(n * n) :: r, u_sqr
-        real(sp), dimension(n * n) :: v_real, v_imag, u_real, u_imag
+        real(sp), dimension(n, n) :: r, u_sqr
+        real(sp), dimension(n, n) :: v_real, v_imag, u_real, u_imag
 
         u_real = real(u)
         u_imag = aimag(u)
@@ -693,13 +781,13 @@ contains
         real(sp), intent(in) :: dt, t0
         real(sp), intent(in), dimension(23) :: coeffs
         real(sp), intent(in), dimension(2 * order - 1, n) :: blocks
-        real(sp), intent(in), dimension(n * n) :: pumping
-        complex(sp), intent(in), dimension(n * n) :: u0
-        complex(sp), intent(out), dimension(n * n) :: u
+        real(sp), intent(in), dimension(n, n) :: pumping
+        complex(sp), intent(in), dimension(n, n) :: u0
+        complex(sp), intent(out), dimension(n, n) :: u
 
         integer :: i
         real(sp) :: t
-        complex(sp), dimension(n * n) :: k1, k2, k3, k4
+        complex(sp), dimension(n, n) :: k1, k2, k3, k4
 
         u = u0
         t = t0
@@ -729,7 +817,7 @@ contains
         real(sp), parameter :: t0 = 0.0
         real(sp), dimension(2 * order - 1, n) :: blocks
 
-        call make_laplacian_2d(3, 3, dx, blocks, orders)
+        call make_laplacian_2d(n, order, dx, blocks, orders)
         call runge_kutta_2d(dt, t0, u0, n, blocks, orders, order, iters, u, pumping, coeffs)
     end subroutine solve_nls_2d
 

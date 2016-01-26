@@ -10,6 +10,7 @@ from time import time
 from datetime import datetime
 from numpy import array, exp, arange, ones, zeros, meshgrid, mgrid, linspace
 from scipy.io import loadmat, savemat
+from mpl_toolkits.mplot3d import Axes3D
 from matplotlib import animation
 from matplotlib.pyplot import figure, plot, show, title, xlabel, ylabel, subplot, legend, xlim, ylim, contourf, hold
 
@@ -215,18 +216,18 @@ class Solution(object):
         return self.num_iters
 
     def getPumping(self):
-        if self.num_nodes ** 2 == len(self.init_sol):
-            right = self.num_nodes * self.dx / 2
-            left = -right
-            x = linspace(left, right, self.num_nodes)
-            grid = meshgrid(x, x)
-            return self.pumping(*grid).reshape(self.num_nodes ** 2)
-        else:
+        if len(self.init_sol.shape) == 1:
             right = self.num_nodes * self.dx
             left = 0.0
             x = linspace(left, right, self.num_nodes)
             grid = meshgrid(x)
             return self.pumping(*grid)
+        else:
+            right = self.num_nodes * self.dx / 2
+            left = -right
+            x = linspace(left, right, self.num_nodes)
+            grid = meshgrid(x, x)
+            return self.pumping(*grid)#.reshape()self.num_nodes ** 2)
 
     def getCoefficients(self):
         return self.coeffs
@@ -256,6 +257,12 @@ class Solution(object):
         self.elapsed_time = seconds
 
     def visualize(self):
+        if len(self.init_sol.shape) == 1:
+            self.visualize1d()
+        else:
+            self.visualize2d()
+
+    def visualize1d(self):
         x = arange(0.0, self.dx * self.num_nodes, self.dx)
         p = self.pumping(x)  # pumping profile
         u = (self.solution.conj() * self.solution).real  # density profile
@@ -285,6 +292,28 @@ class Solution(object):
         polar_plot(4, p)
         polar_plot(5, u)
         polar_plot(6, n)
+
+    def visualize2d(self):
+        right = self.num_nodes * self.dx / 2
+        left = -right
+        x = linspace(left, right, self.num_nodes)
+        gx, gy = meshgrid(x, x)
+        p = self.getPumping()
+        u = (self.solution.conj() * self.solution).real  # density profile
+        n = self.coeffs[11] *  p / (self.coeffs[12] + self.coeffs[13] * u)
+
+        fig = figure()
+
+        def surface_plot(subplot_number, value, label, name, labels):
+            ax = fig.add_subplot(130 + subplot_number, projection='3d')
+            ax.plot_surface(gx, gy, value, label=label)
+            ax.set_xlabel('x')
+            ax.set_ylabel('y')
+            ax.set_title(name)
+
+        surface_plot(1, p, 'pumping', 'Pumping profile.', ('x', 'y', 'p'))
+        surface_plot(2, u, 'density', 'Density distribution of BEC.', ('x', 'y', 'u'))
+        surface_plot(3, n, 'reservoir', 'Density distribution of reservoir.', ('x', 'y', 'n'))
 
     def show(self):
         show()
