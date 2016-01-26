@@ -17,6 +17,9 @@ class OpSumPumping(object):
     def __call__(self, x, t=None):
         return self.lhs(x, t) + self.rhs(x, t)
 
+    def __repr__(self):
+        return repr(self.lhs) + u' + ' + repr(self.rhs)
+
 
 class OpSubPumping(object):
 
@@ -26,6 +29,9 @@ class OpSubPumping(object):
 
     def __call__(self, x, t=None):
         return self.lhs(x, t) + self.rhs(x, t)
+
+    def __repr__(self):
+        return repr(self.lhs) + u' - ' + repr(self.rhs)
 
 
 class AbstractPumping(object):
@@ -37,6 +43,15 @@ class AbstractPumping(object):
 
     def __sub__(self, other):
         return OpSubPumping(self, other)
+
+    def __str__(self):
+        return str(repr(self))
+
+    def __repr__(self):
+        return u'AbstractPumping'
+
+    def __unicode__ (self):
+        return repr(self);
 
 
 class GaussianPumping(AbstractPumping):
@@ -55,11 +70,5 @@ class GaussianPumping(AbstractPumping):
         y = 0.0 if y is None else y
         return self.power * exp( - ((x - self.x0) ** 2 + (y - self.y0) ** 2) / (2.0 * self.variation))
 
-    def __str__(self):
-        return str(repr(self))
-
     def __repr__(self):
-        return u'{0} exp(-{1} (x - {2})^2)'.format(self.power, 1.0 / (2.0 * self.variation), self.x0)
-
-    def __unicode__ (self):
-        return repr(self);
+        return u'{0} exp(-{1} (x - {3})^2)'.format(self.power, 1.0 / (2.0 * self.variation), self.x0)

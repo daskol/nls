@@ -7,6 +7,7 @@ from __future__ import print_function
 from time import time
 from matplotlib import animation
 from matplotlib.pyplot import figure
+from .pumping import GaussianPumping
 
 
 class AbstractAnimation(object):
