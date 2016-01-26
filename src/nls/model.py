@@ -161,8 +161,6 @@ class Solution(object):
     and to load solution. TODO: improve design.
     """
 
-    t0 = 1.0e+0 # seconds
-
     def __init__(self, dt, dx, num_nodes, order, num_iters, pumping, originals, init_solution):
         self.dt = dt
         self.dx = dx
@@ -183,15 +181,15 @@ class Solution(object):
         t0 = 2.0 / originals['gamma']
         x0 = (hbar * t0 / 2 / m_0) ** 0.5
         n0 = 2.0 / (originals['R'] * t0)
-        phi0 = 1.0 / (originals['tilde_g'] * n0 * t0)
+        phi0 = t0
 
         # NLS equation coeficients
         self.coeffs[0] = 1.0  # \partial_t
         self.coeffs[1] = 1.0  # \nabla^2
-        self.coeffs[2] = 1.0  #1.136#originals['R'] / (4.0 * originals['tilde_g'])  # 
-        self.coeffs[3] = 1.0  # 0.283#originals['gamma'] * Solution.t0 / 2  # linear damping
-        self.coeffs[4] = originals['g'] * t0 * phi0 ** 3  # nonlinearity
-        self.coeffs[5] = 1.0  # interaction to reservoir
+        self.coeffs[2] = 1.0  #
+        self.coeffs[3] = 1.0  # linear damping
+        self.coeffs[4] = originals['g'] * phi0 ** 3  # nonlinearity
+        self.coeffs[5] = originals['tilde_g'] * phi0 * n0  # interaction to reservoir
 
         # Reservoir equation coefficients
         self.coeffs[10] = 0.0  # \parital_t
@@ -199,6 +197,8 @@ class Solution(object):
         self.coeffs[12] = 1.0  # damping
         self.coeffs[13] = originals['R'] * phi0 ** 2 / originals['gamma_R']  # interaction term
         self.coeffs[14] = 0.0  # diffusive term
+
+        print(self.coeffs)
 
     def getTimeStep(self):
         return self.dt
