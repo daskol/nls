@@ -4,6 +4,7 @@
 #   See LICENSE for details
 
 from __future__ import print_function
+from time import time
 from matplotlib import animation
 from matplotlib.pyplot import figure
 
@@ -17,7 +18,7 @@ class AbstractAnimation(object):
         self.model = model
         self.frames = frames
         self.step = step
-        self.writer = animation.writers['ffmpeg'](fps=15, metadata={title: 'Exciton-polariton condensation.'})
+        self.writer = animation.writers['ffmpeg'](fps=15, metadata={'title': 'Exciton-polariton condensation.'})
 
     def getElapsedTime(self):
         return self.elapsed_time
