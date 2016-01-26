@@ -75,3 +75,21 @@ class PumpingRadiusIncreaseAnimation(AbstractAnimation):
                 solution.visualize()
                 self.writer.grab_frame()
         self.elapsed_time += time()
+
+
+class PumpingPowerIncreaseAnimation(AbstractAnimation):
+
+    def __init__(self, model, frames, step=0.1):
+        super(PumpingPowerIncreaseAnimation, self).__init__(model, frames, step)
+
+    def animate(self, filename):
+        self.elapsed_time = -time()
+        dpi = 100
+        fig = figure(figsize=(16, 9), dpi=dpi)
+        with self.writer.saving(fig, filename, dpi):
+            for i in xrange(self.frames + 1):
+                self.model.solution.pumping.power = i * self.step
+                solution = self.model.solve()  # Fix references entanglement
+                solution.visualize()
+                self.writer.grab_frame()
+        self.elapsed_time += time()
