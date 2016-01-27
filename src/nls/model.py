@@ -88,8 +88,19 @@ class Problem(object):
 
 class AbstractModel(object):
 
-    def __init__(self):
-        pass
+    def __init__(self, *args, **kwargs):
+        pprint({
+            'dt': kwargs['dt'],
+            'dx': kwargs['dx'],
+            'order': kwargs['order'],
+            'num_nodes': kwargs['num_nodes'],
+            'num_iters': kwargs['num_iters'],
+            'pumping': kwargs['pumping'],
+            'originals': kwargs['original_params'],
+            })
+        self.solution = Solution(kwargs['dt'], kwargs['dx'], kwargs['num_nodes'], kwargs['order'], kwargs['num_iters'],
+                             kwargs['pumping'], kwargs['original_params'], kwargs['u0'])
+        self.solver = None
 
     def solve(self, num_iters=None):
         return self.solver(num_iters)
@@ -123,17 +134,8 @@ class Model1D(AbstractModel):
     """
 
     def __init__(self, *args, **kwargs):
-        pprint({
-            'dt': kwargs['dt'],
-            'dx': kwargs['dx'],
-            'order': kwargs['order'],
-            'num_nodes': kwargs['num_nodes'],
-            'num_iters': kwargs['num_iters'],
-            'pumping': kwargs['pumping'],
-            'originals': kwargs['original_params'],
-            })
-        self.solution = Solution(kwargs['dt'], kwargs['dx'], kwargs['num_nodes'], kwargs['order'], kwargs['num_iters'],
-                             kwargs['pumping'], kwargs['original_params'], kwargs['u0'])
+        super(Model1D, self).__init__(*args, **kwargs)
+
         self.solver = Solver1D(self.solution)
 
 
@@ -142,17 +144,8 @@ class Model2D(AbstractModel):
     """
 
     def __init__(self, *args, **kwargs):
-        pprint({
-            'dt': kwargs['dt'],
-            'dx': kwargs['dx'],
-            'order': kwargs['order'],
-            'num_nodes': kwargs['num_nodes'],
-            'num_iters': kwargs['num_iters'],
-            'pumping': kwargs['pumping'],
-            'originals': kwargs['original_params'],
-            })
-        self.solution = Solution(kwargs['dt'], kwargs['dx'], kwargs['num_nodes'], kwargs['order'], kwargs['num_iters'],
-                             kwargs['pumping'], kwargs['original_params'], kwargs['u0'])
+        super(Model1D, self).__init__(*args, **kwargs)
+
         self.solver = Solver2D(self.solution)
 
 
