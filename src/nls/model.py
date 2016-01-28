@@ -21,11 +21,9 @@ from .solver import *
 
 
 class Problem(object):
-    """design pattern Factory.
+    """Entry point in any computation. It implements design pattern `Factory` that used to construct object of type
+    `Model`.
     """
-    
-    def __init__(self):
-        pass
 
     def model(self, *args, **kwargs):
         """
@@ -44,7 +42,6 @@ class Problem(object):
         """
         if 'params' in kwargs:
             params = kwargs.pop('params')
-            #kwargs = {**params, **kwargs}  # python 3
 
         kwargs['model'] == 'default' if 'model' not in kwargs else kwargs['model']
 
@@ -87,6 +84,9 @@ class Problem(object):
 
 
 class AbstractModel(object):
+    """Base type for objects which constructed with `Problem` class. Child object of this class implements computation
+    and other related routines. This class defines common routines of initialization, solving, and model storage.
+    """
 
     def __init__(self, *args, **kwargs):
         pprint({
@@ -103,6 +103,8 @@ class AbstractModel(object):
         self.solver = None
 
     def solve(self, num_iters=None):
+        """Call solver that is aggregated certain child objects.
+        """
         return self.solver(num_iters)
 
     def store(self, filename=None, label='', desc='', date=datetime.now()):
@@ -144,7 +146,7 @@ class Model2D(AbstractModel):
     """
 
     def __init__(self, *args, **kwargs):
-        super(Model1D, self).__init__(*args, **kwargs)
+        super(Model2D, self).__init__(*args, **kwargs)
 
         self.solver = Solver2D(self.solution)
 
@@ -220,7 +222,7 @@ class Solution(object):
             left = -right
             x = linspace(left, right, self.num_nodes)
             grid = meshgrid(x, x)
-            return self.pumping(*grid)#.reshape()self.num_nodes ** 2)
+            return self.pumping(*grid)
 
     def getCoefficients(self):
         return self.coeffs

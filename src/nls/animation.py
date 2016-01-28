@@ -24,7 +24,7 @@ class AbstractAnimation(object):
     def getElapsedTime(self):
         return self.elapsed_time
 
-    def animate(self, filename):
+    def render(self, filename):
         self.elapsed_time = -time()
         dpi = 100
         fig = figure(figsize=(16, 9), dpi=dpi)
@@ -38,6 +38,9 @@ class AbstractAnimation(object):
 
 
 class IterationIncreaseAnimation(AbstractAnimation):
+    """This class represents object that provide ability to render video that frames draw solution profile in different
+    number of iteration which is increasing.
+    """
 
     def __init__(self, model, frames, step=1):
         super(IterationIncreaseAnimation, self).__init__(model, frames, step)
@@ -56,6 +59,9 @@ class IterationIncreaseAnimation(AbstractAnimation):
 
 
 class PumpingRadiusIncreaseAnimation(AbstractAnimation):
+    """This class implements animation scenario that shows solution profile with different radius of pumping profile.
+    In this case spacial pumping profile is gaussian.
+    """
 
     def __init__(self, model, frames, step=1):
         super(PumpingRadiusIncreaseAnimation, self).__init__(model, frames, step)
@@ -78,6 +84,9 @@ class PumpingRadiusIncreaseAnimation(AbstractAnimation):
 
 
 class PumpingPowerIncreaseAnimation(AbstractAnimation):
+    """Funcational animation that is implemented by object of this type is increasing pumping power as time increase.
+    Pumping model of a problem should provide ability to set pumping power.
+    """
 
     def __init__(self, model, frames, step=0.1):
         super(PumpingPowerIncreaseAnimation, self).__init__(model, frames, step)

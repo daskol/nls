@@ -41,6 +41,8 @@ class AbstractSolver(object):
 
 
 class Solver1D(AbstractSolver):
+    """One dimensional solver that call native Fortran routine that solves NLS equation in axial symmentry in 2D.
+    """
 
     def __init__(self, solution):
         super(AbstractSolver, self).__init__()
@@ -54,6 +56,9 @@ class Solver1D(AbstractSolver):
 
 
 class Solver2D(AbstractSolver):
+    """One dimensional solver that call native Fortran routine that solves NLS equation on a squared grid.
+    """
+
 
     def __init__(self, solution):
         super(AbstractSolver, self).__init__()

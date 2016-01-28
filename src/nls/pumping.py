@@ -8,32 +8,6 @@ from __future__ import print_function
 from numpy import exp
 
 
-class OpSumPumping(object):
-
-    def __init__(self, lhs, rhs):
-        self.lhs = lhs
-        self.rhs = rhs
-
-    def __call__(self, x, t=None):
-        return self.lhs(x, t) + self.rhs(x, t)
-
-    def __repr__(self):
-        return repr(self.lhs) + u' + ' + repr(self.rhs)
-
-
-class OpSubPumping(object):
-
-    def __init__(self, lhs, rhs):
-        self.lhs = lhs
-        self.rhs = rhs
-
-    def __call__(self, x, t=None):
-        return self.lhs(x, t) + self.rhs(x, t)
-
-    def __repr__(self):
-        return repr(self.lhs) + u' - ' + repr(self.rhs)
-
-
 class AbstractPumping(object):
     """Base class of pumping tree that define commont interface of pumping objects behavior.
     """
@@ -52,6 +26,40 @@ class AbstractPumping(object):
 
     def __unicode__ (self):
         return repr(self);
+
+
+class OpSumPumping(AbstractPumping):
+    """Functor object that incapsulates two pumping functional objects and represents their sum.
+    """
+
+    def __init__(self, lhs, rhs):
+        super(AbstractPumping, self).__init__()
+
+        self.lhs = lhs
+        self.rhs = rhs
+
+    def __call__(self, x, t=None):
+        return self.lhs(x, t) + self.rhs(x, t)
+
+    def __repr__(self):
+        return repr(self.lhs) + u' + ' + repr(self.rhs)
+
+
+class OpSubPumping(AbstractPumping):
+    """Functor object that incapsulates two pumping functional objects and represents their substract.
+    """
+
+    def __init__(self, lhs, rhs):
+        super(AbstractPumping, self).__init__()
+
+        self.lhs = lhs
+        self.rhs = rhs
+
+    def __call__(self, x, t=None):
+        return self.lhs(x, t) + self.rhs(x, t)
+
+    def __repr__(self):
+        return repr(self.lhs) + u' - ' + repr(self.rhs)
 
 
 class GaussianPumping(AbstractPumping):
