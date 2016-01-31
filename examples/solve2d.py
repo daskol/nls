@@ -7,7 +7,7 @@ from __future__ import print_function
 from sys import path
 
 # Extend path variable in order to import fortran routines
-NLS_MODULE_PATH = '../src/'
+NLS_MODULE_PATH = '../'
 
 if NLS_MODULE_PATH not in path:
     path.append(NLS_MODULE_PATH)
