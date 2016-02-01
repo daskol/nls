@@ -40,18 +40,15 @@ $(OBJDIR)/%.o: %.f95
 
 install:
 
-pylib: glue
-	$(ZIP) nls-$(VERSION).zip nls/ nls/native.so nls/*.py
-	@mv -v {,$(TARGETDIR)/}nls-$(VERSION).zip
+lib: glue
 
 glue: checkdirs
 	f2py2 --quiet -lblas -c nls.f95 -m $(TARGETLIB)
-	@cp -v $(TARGETLIB).so nls/
-	@mv -v {,$(BINDIR)/}$(TARGETLIB).so
+	@cp -v $(TARGETLIB).so $(BINDIR)/
 
 clean:
 	rm -rfv $(patsubst %, $(OBJDIR)/%, $(OBJECTS) $(TARGETMOD).mod)
-	rm -rfv $(addprefix $(TARGETDIR)/, $(TARGETLIB).so $(TARGET) $(TARGETDIR)/nls-$(VERSION).zip) nls/$(TARGETLIB).so
+	rm -rfv $(addprefix $(TARGETDIR)/, $(TARGETLIB).so $(TARGET) $(TARGETDIR)/nls-$(VERSION).zip)
 
 .PHONY: all checkdirs clean install glue
 .SUFFIXES: .f95 .o

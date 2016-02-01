@@ -13,7 +13,8 @@ module nls
     public :: make_banded_matrix
     public :: clear_first_row_of_derivative
     public :: divide_derivative_on_radius
-    public :: make_laplacian_o3, make_laplacian_o5, make_laplacian_o7, make_laplacian, make_laplacian_2d
+    public :: make_laplacian_o3, make_laplacian_o5, make_laplacian_o7, make_laplacian
+    public :: make_laplacian_2d_o3, make_laplacian_2d_o5, make_laplacian_2d_o7, make_laplacian_2d
     public :: rbbmv_o3, rbbmv_o5, rbbmv, rgbmv
     public :: revervoir, revervoir_2d
     public :: hamiltonian, hamiltonian_2d
@@ -280,6 +281,96 @@ contains
         end if
     end subroutine make_laplacian
 
+    subroutine make_laplacian_2d_o3(n, h, blocks, orders)
+        implicit none
+
+        integer, parameter :: m = 3
+        integer, intent(in) :: n
+        integer, intent(out), dimension(m) :: orders
+        real(sp), intent(in) :: h
+        real(sp), intent(out), dimension(2 * m - 1, n) :: blocks
+
+        real(sp) :: dx2
+        real(sp), dimension(1) :: left, right
+        real(sp), dimension(3) :: middle
+
+        dx2 = 1.0 * h ** 2
+
+        left = (/ 1 /) / dx2
+        middle = (/ 1, -4, 1 /) / dx2
+        right = (/ 1 /) / dx2
+
+        call make_banded_matrix(n, 1, left, blocks(1:1, :))
+        call make_banded_matrix(n, 3, middle, blocks(2:4, :))
+        call make_banded_matrix(n, 1, right, blocks(5:5, :))
+
+        orders = (/ 0, 1, 0 /)
+    end subroutine make_laplacian_2d_o3
+
+    subroutine make_laplacian_2d_o5(n, h, blocks, orders)
+        implicit none
+
+        integer, parameter :: m = 5
+        integer, intent(in) :: n
+        integer, intent(out), dimension(m) :: orders
+        real(sp), intent(in) :: h
+        real(sp), intent(out), dimension(2 * m - 1, n) :: blocks
+
+        real(sp) :: dx2
+        real(sp), dimension(1) :: left1, left2, right1, right2
+        real(sp), dimension(m) :: middle
+
+        dx2 = 12 * h ** 2
+
+        left2 = (/ -1 /) / dx2
+        left1 = (/ 16 /) / dx2
+        middle = (/ -1, 16, -60, 16, -1 /) / dx2
+        right1 = (/ 16 /) / dx2
+        right2 = (/ -1 /) / dx2
+
+        call make_banded_matrix(n, 1, left2, blocks(1:1, :))
+        call make_banded_matrix(n, 1, left1, blocks(2:2, :))
+        call make_banded_matrix(n, m, middle, blocks(3:7, :))
+        call make_banded_matrix(n, 1, right1, blocks(8:8, :))
+        call make_banded_matrix(n, 1, right2, blocks(9:9, :))
+
+        orders = (/ 0, 0, 2, 0, 0 /)
+    end subroutine make_laplacian_2d_o5
+
+    subroutine make_laplacian_2d_o7(n, h, blocks, orders)
+        implicit none
+
+        integer, parameter :: m = 7
+        integer, intent(in) :: n
+        integer, intent(out), dimension(m) :: orders
+        real(sp), intent(in) :: h
+        real(sp), intent(out), dimension(2 * m - 1, n) :: blocks
+
+        real(sp) :: dx2
+        real(sp), dimension(1) :: left3, left2, left1, right1, right2, right3
+        real(sp), dimension(m) :: middle
+
+        dx2 = 180.0 * h ** 2
+
+        left3 = (/ 2 /) / dx2
+        left2 = (/ -27 /) / dx2
+        left1 = (/ 270 /) / dx2
+        middle = (/ 2, -27, 270, -980, 270, -27, 2 /) / dx2
+        right1 = left1
+        right2 = left2
+        right3 = left3
+
+        call make_banded_matrix(n, 1, left3, blocks(1:1, :))
+        call make_banded_matrix(n, 1, left2, blocks(2:2, :))
+        call make_banded_matrix(n, 1, left1, blocks(3:3, :))
+        call make_banded_matrix(n, m, middle, blocks(4:10, :))
+        call make_banded_matrix(n, 1, right1, blocks(11:11, :))
+        call make_banded_matrix(n, 1, right2, blocks(12:12, :))
+        call make_banded_matrix(n, 1, right3, blocks(13:13, :))
+
+        orders = (/ 0, 0, 0, 3, 0, 0, 0 /)
+    end subroutine make_laplacian_2d_o7
+
     ! TODO: implement high order approximations.
     subroutine make_laplacian_2d(n, m, h, blocks, orders)
         implicit none
@@ -289,41 +380,12 @@ contains
         real(sp), intent(in) :: h
         real(sp), intent(out), dimension(2 * m - 1, n) :: blocks
 
-        real(sp) :: dx2
-        real(sp), dimension(1) :: leftleft, left, right, rightright
-        real(sp), dimension(3) :: middle
-        real(sp), dimension(5) :: middle5
-
         if (m == 3) then
-            dx2 = 1.0 * h ** 2
-
-            left = (/ 1 /) / dx2
-            middle = (/ 1, -4, 1 /) / dx2
-            right = (/ 1 /) / dx2
-
-            call make_banded_matrix(n, 1, left, blocks(1:1, :))
-            call make_banded_matrix(n, 3, middle, blocks(2:4, :))
-            call make_banded_matrix(n, 1, right, blocks(5:5, :))
-
-            orders = (/ 0, 1, 0 /)
+            call make_laplacian_2d_o3(n, h, blocks, orders)
         else if (m == 5) then
-            dx2 = 12 * h ** 2
-
-            leftleft = (/ -1 /) / dx2
-            left = (/ 16 /) / dx2
-            middle5 = (/ -1, 16, -60, 16, -1 /) / dx2
-            right = (/ 16 /) / dx2
-            rightright = (/ -1 /) / dx2
-
-            call make_banded_matrix(n, 1, leftleft, blocks(1:1, :))
-            call make_banded_matrix(n, 1, left, blocks(2:2, :))
-            call make_banded_matrix(n, 3, middle5, blocks(3:5, :))
-            call make_banded_matrix(n, 1, right, blocks(6:6, :))
-            call make_banded_matrix(n, 1, rightright, blocks(7:7, :))
-
-            orders = (/ 0, 0, 2, 0, 0 /)
+            call make_laplacian_2d_o5(n, h, blocks, orders)
         else if (m == 7) then
-            ! TODO: implementa the senventh-order laplacian approximation
+            call make_laplacian_2d_o7(n, h, blocks, orders)
         end if
     end subroutine make_laplacian_2d
 
