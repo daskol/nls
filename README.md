@@ -27,18 +27,22 @@ Package to solve non-linear Schrodinger equation written with Fortran 95 and Pyt
 2. Run `make glue` in order to build python lib in `bin/` directory that incapsulate native code
 3. Use python to import native module in a way
 
+
+```python
     from nls.native import nls
     print(nls.__doc__)
+```
 
 4. Or use python to import python wrap in a way
 
+```python
     from nls import Problem
     model = Problem().model()
     model.solve()
     model.visualize()
     model.show()
     model.report()
-
+```
 
 ## Testing
 
