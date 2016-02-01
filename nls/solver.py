@@ -45,11 +45,7 @@ class Solver1D(AbstractSolver):
     """
 
     def __init__(self, solution):
-        super(AbstractSolver, self).__init__()
-
-        self.solution = solution
-        self.elapsed_time = 0.0
-
+        super(Solver1D, self).__init__(solution)
 
     def solve(self, *args, **kwargs):
         return nls.solve_nls(*args, **kwargs)
@@ -61,10 +57,7 @@ class Solver2D(AbstractSolver):
 
 
     def __init__(self, solution):
-        super(AbstractSolver, self).__init__()
-
-        self.solution = solution
-        self.elapsed_time = 0.0
+        super(Solver2D, self).__init__(solution)
 
     def solve(self, *args, **kwargs):
         return nls.solve_nls_2d(*args, **kwargs)
