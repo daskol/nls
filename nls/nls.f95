@@ -10,6 +10,7 @@ module nls
     integer, parameter :: sp = selected_real_kind(6, 37)
     integer, parameter :: dp = selected_real_kind(15, 307)
 
+    public :: version
     public :: make_banded_matrix
     public :: clear_first_row_of_derivative
     public :: divide_derivative_on_radius
@@ -22,6 +23,17 @@ module nls
     public :: solve_nls_1d, solve_nls_2d, solve_nls
 
 contains
+
+    !   \brief Return current version of library in format `major.minor.patch`.
+    subroutine version(major, minor, patch)
+        implicit none
+
+        integer, intent(out) :: major, minor, patch
+
+        major = 0
+        minor = 0
+        patch = 0
+    end subroutine version
 
     !   \brief Make banded matrix from a row. Banded matrix representation corresponds to BLAS-2 documentation. Memory
     !   usage O(nm), time complexity O(nm).
