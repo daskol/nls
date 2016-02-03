@@ -15,3 +15,11 @@ __all__ = [
     'pumping',
     'solver',
 ]
+
+MAJOR = 0
+MINOR = 1
+PATCH = 0
+
+
+def version():
+    return  MAJOR, MINOR, PATCH
