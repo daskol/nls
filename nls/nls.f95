@@ -31,7 +31,7 @@ contains
         integer, intent(out) :: major, minor, patch
 
         major = 0
-        minor = 0
+        minor = 1
         patch = 0
     end subroutine version
 

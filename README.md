@@ -4,6 +4,8 @@
 
 Package to solve non-linear Schrodinger equation written with Fortran 95 and Python 2.
 
+NLS is scientific package that provides ability to solve effeffectively non-linear schrodinger equation with reservoir. These equation describes exciton-polariton condensation in microcavities. NLS is built on native fortran code and is based on certain natural abstraction layer that wraps native solver. These features are reason that makes calcualtions with NLS fast.
+
 ### Features
 
 - core written with native Fortran
@@ -48,10 +50,8 @@ Package to solve non-linear Schrodinger equation written with Fortran 95 and Pyt
 
 ## Requirements
 
-1. `make`
-2. `gfortran`
-3. `numpy` with `f2py` extension
-4. `matplotlib`
+1. Fortran compiler
+2. Python libraries `numpy` with `f2py` extension, `matplotlib`, and `scipy`.
 
 ## Credits 
 

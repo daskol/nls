@@ -1,2 +1,6 @@
+graft doc
+graft examples
+include nls/nls.f95
+include nls/makefile
 include README.md
-include LISENCE
+include LICENSE
