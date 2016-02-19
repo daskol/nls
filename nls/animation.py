@@ -71,13 +71,16 @@ class PumpingRadiusIncreaseAnimation(AbstractAnimation):
     In this case spacial pumping profile is gaussian.
     """
 
-    def __init__(self, model, frames, step=1):
+    def __init__(self, model, frames, step=1, power=3.0, variation=6.84931506849):
         super(PumpingRadiusIncreaseAnimation, self).__init__(model, frames, step)
+
+        self.power = power
+        self.variation = variation
 
     def renderFrame(self, frame_id):
         origin = frame_id * self.step
-        pumping = GaussianPumping(power=3.0, x0=+origin, variation=6.84931506849) \
-               + GaussianPumping(power=3.0, x0=-origin, variation=6.84931506849)
+        pumping = GaussianPumping1D(power=self.power, x0=+origin, variation=self.variation) \
+               + GaussianPumping1D(power=self.power, x0=-origin, variation=self.variation)
         self.model.solution.setPumping(pumping)
         solution = self.model.solve()  # Fix references entanglement
         solution.setInitialSolution(solution.getSolution())

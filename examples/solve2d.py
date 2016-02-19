@@ -12,7 +12,7 @@ NLS_MODULE_PATH = '../'
 if NLS_MODULE_PATH not in path:
     path.append(NLS_MODULE_PATH)
 
-from nls import Problem, GaussianPumping, IterationIncreaseAnimation
+from nls import Problem, GaussianPumping2D, IterationIncreaseAnimation
 
 
 def main():
@@ -25,7 +25,7 @@ def main():
         order = 3,
         num_nodes = 40,
         num_iters = 1000,
-        pumping = GaussianPumping(power=3.0, variation=6.84931506849),
+        pumping = GaussianPumping2D(power=3.0, variation=6.84931506849),
         original_params = {
             'R': 0.0242057488654,
             'gamma': 0.0242057488654,
