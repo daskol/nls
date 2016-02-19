@@ -22,5 +22,12 @@ obj/
 *.mpg
 # Setuptools distribution folder.
 /dist/
+# Setuptools build folder
+/build/
+# Setuptools static files
+MANIFEST
+PKG-INFO
+# Python virtual environment directory
+/env/
 # Python egg metadata, regenerated from source files by setuptools.
 /*.egg-info

@@ -19,7 +19,7 @@ CLASSIFIERS = """\
 Development Status :: 4 - Beta
 Intended Audience :: Science/Research
 Intended Audience :: Developers
-License :: MIT
+License :: OSI Approved :: MIT License
 Programming Language :: Fortran
 Programming Language :: Python
 Programming Language :: Python :: 2
