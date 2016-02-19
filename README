@@ -10,6 +10,9 @@ NLS is scientific package that provides ability to solve effeffectively non-line
 
 - core written with native Fortran
 - wrapped with Python interaface
+- [DEV] executables written with native Fortran
+- [DEV] support for multithreading computation
+- [DEV] support for distributed computation
 
 ![Gaussian Ring Pumping](doc/pics/gaussian-ring-pumping.png)
 
