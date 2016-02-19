@@ -11,6 +11,15 @@ class AbstractPumping(object):
     """Base class of pumping tree that define commont interface of pumping objects behavior.
     """
 
+    def __init__(self, power=1.0):
+        self.power = 1.0
+
+    def setPower(self, power):
+        """Set local parameter power of pumping. Word `local` means multiplier in case of arithmetic operation
+        (`OpSumPumping`, `OpSubPumping`, etc) and real power of pumping in other cases.
+        """
+        self.power = power
+
     def __call__(self, *args, **kwargs):
         raise Exception("Nothing to call: abstract class could not represent pumping.")
 
@@ -35,13 +44,13 @@ class OpSumPumping(AbstractPumping):
     """
 
     def __init__(self, lhs, rhs):
-        super(AbstractPumping, self).__init__()
+        super(OpSumPumping, self).__init__()
 
         self.lhs = lhs
         self.rhs = rhs
 
     def __call__(self, *args, **kwargs):
-        return self.lhs(*args, **kwargs) + self.rhs(*args, **kwargs)
+        return self.power * (self.lhs(*args, **kwargs) + self.rhs(*args, **kwargs))
 
     def __repr__(self):
         return repr(self.lhs) + u' + ' + repr(self.rhs)
@@ -52,13 +61,13 @@ class OpSubPumping(AbstractPumping):
     """
 
     def __init__(self, lhs, rhs):
-        super(AbstractPumping, self).__init__()
+        super(OpSubPumping, self).__init__()
 
         self.lhs = lhs
         self.rhs = rhs
 
     def __call__(self, *args, **kwargs):
-        return self.lhs(*args, **kwargs) - self.rhs(*args, **kwargs)
+        return self.power * (self.lhs(*args, **kwargs) - self.rhs(*args, **kwargs))
 
     def __repr__(self):
         return repr(self.lhs) + u' - ' + repr(self.rhs)
@@ -70,7 +79,7 @@ class OpMulPumping(AbstractPumping):
     """
 
     def __init__(self, lhs, rhs):
-        super(AbstractPumping, self).__init__()
+        super(OpMulPumping, self).__init__()
 
         self.lhs = lhs
         self.rhs = rhs
@@ -87,7 +96,7 @@ class GaussianPumping(AbstractPumping):
     """
 
     def __init__(self, power=1.0, x0=0.0, y0=0.0, variation=5.0):
-        super(AbstractPumping, self).__init__()
+        super(GaussianPumping, self).__init__()
 
         self.power = power
         self.x0 = x0
@@ -121,7 +130,7 @@ class GaussianPumping2D(GaussianPumping):
         super(GaussianPumping2D, self).__init__(power, x0, y0, variation)
 
 
-class GaussianRingPumping1D(OpSubPumping):
+class GaussianRingPumping1D(OpSumPumping):
     """Implemet pumping on ring with gaussian profile  The center of a ring is in origin.
     """
 

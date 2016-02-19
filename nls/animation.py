@@ -7,7 +7,7 @@ from __future__ import print_function
 from time import time
 from matplotlib import animation
 from matplotlib.pyplot import figure
-from .pumping import GaussianPumping
+from .pumping import GaussianRingPumping1D
 
 
 class AbstractAnimation(object):
@@ -71,7 +71,7 @@ class PumpingRadiusIncreaseAnimation(AbstractAnimation):
     In this case spacial pumping profile is gaussian.
     """
 
-    def __init__(self, model, frames, step=1, power=3.0, variation=6.84931506849):
+    def __init__(self, model, frames, step=1, power=20.0, variation=3.14):
         super(PumpingRadiusIncreaseAnimation, self).__init__(model, frames, step)
 
         self.power = power
@@ -79,8 +79,7 @@ class PumpingRadiusIncreaseAnimation(AbstractAnimation):
 
     def renderFrame(self, frame_id):
         origin = frame_id * self.step
-        pumping = GaussianPumping1D(power=self.power, x0=+origin, variation=self.variation) \
-               + GaussianPumping1D(power=self.power, x0=-origin, variation=self.variation)
+        pumping = GaussianRingPumping1D(power=self.power, radius=origin, variation=self.variation)
         self.model.solution.setPumping(pumping)
         solution = self.model.solve()  # Fix references entanglement
         solution.setInitialSolution(solution.getSolution())
@@ -96,6 +95,6 @@ class PumpingPowerIncreaseAnimation(AbstractAnimation):
         super(PumpingPowerIncreaseAnimation, self).__init__(model, frames, step)
 
     def renderFrame(self, frame_id):
-        self.model.solution.pumping.power = frame_id * self.step
+        self.model.solution.pumping.setPower(frame_id * self.step)
         solution = self.model.solve()  # Fix references entanglement
         solution.visualize()

@@ -13,7 +13,7 @@ if NLS_MODULE_PATH not in path:
     path.append(NLS_MODULE_PATH)
 
 from nls.model import Problem
-from nls.pumping import GaussianPumping1D, GaussianPumping2D
+from nls.pumping import GaussianRingPumping1D, GaussianPumping1D, GaussianPumping2D
 from nls.animation import IterationIncreaseAnimation, PumpingRadiusIncreaseAnimation, PumpingPowerIncreaseAnimation
 
 
@@ -27,8 +27,8 @@ def main():
         order = 5,
         num_nodes = 400,
         num_iters = 10000,
-        pumping = GaussianPumping1D(power=3.0, variation=6.84931506849),
-               #+ GaussianPumping1D(power=3.0, x0=+5.0, variation=6.84931506849),
+        #pumping = GaussianPumping1D(power=20, x0=0.0, y0=0.0, variation=3.14),
+        pumping = GaussianRingPumping1D(power=20.0, radius=10.0, variation=3.14),
         original_params = {
             'R': 0.0242057488654,
             'gamma': 0.0242057488654,
@@ -40,17 +40,17 @@ def main():
         })
 
     # Animate solution profile as iterations increase
-    animation = IterationIncreaseAnimation(model, 10, 50)
-    animation.render('point-iteration-increase.mp4')
+    animation = IterationIncreaseAnimation(model, 200, 50)
+    #animation.render('point-iteration-increase.mp4')
     animation.report()
 
     # Animate solution profile as radius increase
-    animation = PumpingRadiusIncreaseAnimation(model, 2, 0.1)
-    animation.render('ring-radius-increase.mp4')
+    animation = PumpingRadiusIncreaseAnimation(model, 200, 0.15)
+    #animation.render('ring-radius-increase.mp4')
     animation.report()
 
     # Animate solution profile as power increase
-    animation = PumpingPowerIncreaseAnimation(model, 6, 0.05)
+    animation = PumpingPowerIncreaseAnimation(model, 200, 0.005)
     animation.render('point-power-increase.mp4')
     animation.report()
 
