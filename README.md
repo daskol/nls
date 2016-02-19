@@ -11,6 +11,8 @@ NLS is scientific package that provides ability to solve effeffectively non-line
 - core written with native Fortran
 - wrapped with Python interaface
 
+![Gaussian Ring Pumping](doc/pics/gaussian-ring-pumping.png)
+
 ## Usage
 
 ### Fortran executable
@@ -55,6 +57,6 @@ NLS is scientific package that provides ability to solve effeffectively non-line
 
 ## Credits 
 
-(c) Daniel Bershatsky <dainel.bershatsky@skolkovotech.ru>, 2015
+&copy; [Daniel Bershatsky](mailto:daniel.bershatsky@skolkovotech.ru), 2015-2016
 
 
