@@ -8,7 +8,7 @@ from __future__ import print_function
 from pprint import pprint
 from time import time
 from datetime import datetime
-from numpy import array, exp, arange, ones, zeros, meshgrid, mgrid, linspace
+from numpy import array, exp, sqrt, arange, ones, zeros, meshgrid, mgrid, linspace
 from scipy.io import loadmat, savemat
 from mpl_toolkits.mplot3d import Axes3D
 from matplotlib import animation
@@ -173,18 +173,18 @@ class Solution(object):
         m_e = 9.1e-31
         m_0 = 1.0e-5 * m_e
 
-        t0 = 2.0 / originals['gamma']
-        x0 = (hbar * t0 / 2 / m_0) ** 0.5
+        phi0 = sqrt(originals['gamma'] / (2.0 * originals['g']))
+        t0 = phi0
+        x0 = sqrt(hbar * t0 / (2 * m_0))
         n0 = 2.0 / (originals['R'] * t0)
-        phi0 = t0
 
         # NLS equation coeficients
         self.coeffs[0] = 1.0  # \partial_t
         self.coeffs[1] = 1.0  # \nabla^2
         self.coeffs[2] = 1.0  #
         self.coeffs[3] = 1.0  # linear damping
-        self.coeffs[4] = originals['g'] * phi0 ** 3  # nonlinearity
-        self.coeffs[5] = originals['tilde_g'] * phi0 * n0  # interaction to reservoir
+        self.coeffs[4] = 1.0  # originals['g'] * phi0 ** 3  # nonlinearity
+        self.coeffs[5] = 4.0 * originals['tilde_g'] / originals['R']  #* phi0 * n0  # interaction to reservoir
 
         # Reservoir equation coefficients
         self.coeffs[10] = 0.0  # \parital_t
