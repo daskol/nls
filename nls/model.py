@@ -11,8 +11,8 @@ from datetime import datetime
 from numpy import array, exp, sqrt, arange, ones, zeros, meshgrid, mgrid, linspace
 from scipy.io import loadmat, savemat
 from mpl_toolkits.mplot3d import Axes3D
-from matplotlib import animation
-from matplotlib.pyplot import figure, plot, show, title, xlabel, ylabel, subplot, legend, xlim, ylim, contourf, hold
+from matplotlib import animation, cm
+from matplotlib.pyplot import figure, plot, show, title, xlabel, ylabel, subplot, legend, xlim, ylim, contourf, hold, colorbar
 
 from .animation import *
 from .native import *
@@ -251,13 +251,13 @@ class Solution(object):
     def setElapsedTime(self, seconds):
         self.elapsed_time = seconds
 
-    def visualize(self):
+    def visualize(self, *args, **kwargs):
         if len(self.init_sol.shape) == 1:
-            self.visualize1d()
+            self.visualize1d(*args, **kwargs)
         else:
-            self.visualize2d()
+            self.visualize2d(*args, **kwargs)
 
-    def visualize1d(self):
+    def visualize1d(self, *args, **kwargs):
         x = arange(0.0, self.dx * self.num_nodes, self.dx)
         p = self.pumping(x)  # pumping profile
         u = (self.solution.conj() * self.solution).real  # density profile
@@ -288,7 +288,7 @@ class Solution(object):
         polar_plot(5, u)
         polar_plot(6, n)
 
-    def visualize2d(self):
+    def visualize2d(self, *args, **kwargs):
         right = self.num_nodes * self.dx / 2
         left = -right
         x = linspace(left, right, self.num_nodes)
@@ -302,13 +302,28 @@ class Solution(object):
         def surface_plot(subplot_number, value, label, name, labels):
             ax = fig.add_subplot(130 + subplot_number, projection='3d')
             ax.plot_surface(gx, gy, value, label=label)
-            ax.set_xlabel('x')
-            ax.set_ylabel('y')
+            ax.set_xlabel(labels[0])
+            ax.set_ylabel(labels[1])
+            ax.set_zlabel(labels[2])
             ax.set_title(name)
 
-        surface_plot(1, p, 'pumping', 'Pumping profile.', ('x', 'y', 'p'))
-        surface_plot(2, u, 'density', 'Density distribution of BEC.', ('x', 'y', 'u'))
-        surface_plot(3, n, 'reservoir', 'Density distribution of reservoir.', ('x', 'y', 'n'))
+        def contour_plot(subplot_number, value, label, name, labels):
+            levels = linspace(0.0, value.max() + 1.0e-3, 11)
+            extent = (gx[0, 0], gx[-1, -1], gy[0, 0], gy[-1, -1])
+
+            ax = fig.add_subplot(130 + subplot_number, aspect='equal')
+            ax.set_xlabel(labels[0])
+            ax.set_ylabel(labels[1])
+            ax.set_title(name)
+            
+            cp = ax.contourf(gx, gy, value, levels, cmap=cm.get_cmap('Accent'), extent=extent)
+            colorbar(cp, orientation='horizontal')
+        
+        helper_plot = contour_plot if 'contour' in kwargs else surface_plot
+
+        helper_plot(1, p, 'pumping', 'Pumping profile.', ('x', 'y', 'p'))
+        helper_plot(2, u, 'density', 'Density distribution of BEC.', ('x', 'y', 'u'))
+        helper_plot(3, n, 'reservoir', 'Density distribution of reservoir.', ('x', 'y', 'n'))
 
     def show(self):
         show()
