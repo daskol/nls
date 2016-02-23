@@ -8,7 +8,7 @@ from __future__ import print_function
 from pprint import pprint
 from time import time
 from datetime import datetime
-from numpy import array, exp, sqrt, arange, ones, zeros, meshgrid, mgrid, linspace
+from numpy import array, exp, sqrt, arange, ones, zeros, meshgrid, mgrid, linspace, angle, gradient
 from scipy.io import loadmat, savemat
 from mpl_toolkits.mplot3d import Axes3D
 from matplotlib import animation, cm
@@ -318,12 +318,39 @@ class Solution(object):
             
             cp = ax.contourf(gx, gy, value, levels, cmap=cm.get_cmap('Accent'), extent=extent)
             colorbar(cp, orientation='horizontal')
-        
-        helper_plot = contour_plot if 'contour' in kwargs else surface_plot
 
-        helper_plot(1, p, 'pumping', 'Pumping profile.', ('x', 'y', 'p'))
-        helper_plot(2, u, 'density', 'Density distribution of BEC.', ('x', 'y', 'u'))
-        helper_plot(3, n, 'reservoir', 'Density distribution of reservoir.', ('x', 'y', 'n'))
+        def stream_plot(subplot_number, value, label, name, labels):
+            """Plot stream of complex function.
+            :param: value tuple Pair of absolute value and its angle.
+            """
+            jx, jy = value[0] * gradient(value[1])
+
+            ax = fig.add_subplot(120 + subplot_number, aspect='equal')
+            ax.streamplot(gx, gy, jx, jy, color=value[0])
+            ax.set_xlim(gx[0, 0], gx[-1, -1])
+            ax.set_ylim(gy[0, 0], gy[-1, -1])
+            ax.set_xlabel(labels[0])
+            ax.set_ylabel(labels[1])
+            ax.set_title(name)
+
+        def density_plot(subplot_number, value, label, name, labels):
+            extent = (gx[0, 0], gx[-1, -1], gy[0, 0], gy[-1, -1])
+
+            ax = fig.add_subplot(120 + subplot_number, aspect='equal')
+            ax.set_xlabel(labels[0])
+            ax.set_ylabel(labels[1])
+            ax.set_title(name)
+            ax.imshow(value, extent=extent)
+        
+        if 'stream' in kwargs and kwargs['stream']:
+            stream_plot(1, (u, angle(self.solution)), 'phase gradient', 'Condensate streams', ('x', 'y'))
+            density_plot(2, u, 'density', 'Density distribution of BEC.', ('x', 'y'))
+        else:
+            helper_plot = contour_plot if 'contour' in kwargs and kwargs['contour'] else surface_plot
+
+            helper_plot(1, p, 'pumping', 'Pumping profile.', ('x', 'y', 'p'))
+            helper_plot(2, u, 'density', 'Density distribution of BEC.', ('x', 'y', 'u'))
+            helper_plot(3, n, 'reservoir', 'Density distribution of reservoir.', ('x', 'y', 'n'))
 
     def show(self):
         show()
