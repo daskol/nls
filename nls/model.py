@@ -43,7 +43,19 @@ class Problem(object):
         if 'params' in kwargs:
             params = kwargs.pop('params')
 
-        kwargs['model'] == 'default' if 'model' not in kwargs else kwargs['model']
+        kwargs['model'] = 'default' if 'model' not in kwargs else kwargs['model']
+        kwargs['original_params'] = {} if 'original_params' not in kwargs else kwargs['original_params']
+
+        if 'R' not in kwargs['original_params']:
+            kwargs['original_params']['R'] = 0.0242057488654
+        if 'gamma' not in kwargs['original_params']:
+            kwargs['original_params']['gamma'] = 0.0242057488654
+        if 'g' not in kwargs['original_params']:
+            kwargs['original_params']['g'] = 0.00162178517398
+        if 'tilde_g' not in kwargs['original_params']:
+            kwargs['original_params']['tilde_g'] = 0.0169440242057
+        if 'gamma_R' not in kwargs['original_params']:
+            kwargs['original_params']['gamma_R'] = 0.242057488654
 
         if 'model' in kwargs and kwargs['model'] in ('1d', 'default'):
             return self.fabricateModel1D(*args, **kwargs)
@@ -235,6 +247,14 @@ class Solution(object):
 
     def getElapsedTime(self):
         return self.elapsed_time
+
+    @staticmethod
+    def load(filename):
+        pprint('Default <Solution> object creation...')
+        self = Problem().model().solution
+        pprint('Restoring <Solution> object...')
+        self.restore(filename)
+        return self
 
     def setNumberOfIterations(self, num_iters):
         self.num_iters = num_iters
