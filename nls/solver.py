@@ -34,8 +34,20 @@ class AbstractSolver(object):
 
         return self.solution
 
-    def solve(*argv, **kwargs):
+    def solve(*args, **kwargs):
         """This method should be override in child classes that specify solver routine(template method pattern).
+        """
+        raise Exception('AbstractSolver: native solver routine is not passed!')
+
+    def chemicalPotential(self, *args, **kwargs):
+        return self.chemicalPotentialRoutine(
+            self.solution.getSpatialStep(),
+            self.solution.getPumping(),
+            self.solution.getCoefficients(),
+            self.solution.getSolution())
+
+    def chemicalPotentialRoutine(self, *args, **kwargs):
+        """This method should be override in child classses that specify chemical potencial calculation routine.
         """
         raise Exception('AbstractSolver: native solver routine is not passed!')
 
@@ -50,6 +62,9 @@ class Solver1D(AbstractSolver):
     def solve(self, *args, **kwargs):
         return nls.solve_nls(*args, **kwargs)
 
+    def chemicalPotentialRoutine(self, *args, **kwargs):
+        return nls.chemical_potential_1d(*args, **kwargs)
+
 
 class Solver2D(AbstractSolver):
     """One dimensional solver that call native Fortran routine that solves NLS equation on a squared grid.
@@ -61,3 +76,6 @@ class Solver2D(AbstractSolver):
 
     def solve(self, *args, **kwargs):
         return nls.solve_nls_2d(*args, **kwargs)
+
+    def chemicalPotentialRoutine(*args, **kwargs):
+        return nls.chemical_potential_2d(*args, **kwargs)

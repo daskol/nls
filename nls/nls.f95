@@ -21,6 +21,7 @@ module nls
     public :: hamiltonian, hamiltonian_2d
     public :: runge_kutta, runge_kutta_2d
     public :: solve_nls_1d, solve_nls_2d, solve_nls
+    public :: chemical_potential_1d, chemical_potential_2d
 
 contains
 
@@ -962,5 +963,45 @@ contains
         call make_laplacian_2d(n, order, dx, blocks, orders)
         call runge_kutta_2d(dt, t0, u0, n, blocks, orders, order, iters, u, pumping, coeffs)
     end subroutine solve_nls_2d
+
+    subroutine chemical_potential_1d(dx, n, pumping, coeffs, u0, mu)
+        implicit none
+
+        integer, intent(in) :: n
+        real(sp), intent(in) :: dx
+        real(sp), intent(in), dimension(n) :: pumping
+        real(sp), intent(in), dimension(23) :: coeffs
+        real(sp), intent(out) :: mu  ! chemical potential
+        complex(sp), intent(in), dimension(n) :: u0
+
+        integer, parameter :: order = 5, klu = (order - 1) / 2
+        real(sp), dimension(order, n) :: op
+        complex(sp), dimension(n) :: u
+
+        call make_laplacian(n, order, dx, op)
+        call hamiltonian(pumping, coeffs, u0, u, op, klu, n)
+
+        mu = real(dot_product(u0, u) / dot_product(u, u))
+    end subroutine chemical_potential_1d
+
+    subroutine chemical_potential_2d(dx, n, pumping, coeffs, u0, mu)
+        integer, intent(in) :: n
+        real(sp), intent(in) :: dx
+        real(sp), intent(in), dimension(n, n) :: pumping
+        real(sp), intent(in), dimension(23) :: coeffs
+        real(sp), intent(out) :: mu  ! chemical potential
+        complex(sp), intent(in), dimension(n, n) :: u0
+
+        integer, parameter :: order = 5, klu = (order - 1) / 2
+        integer, dimension(order) :: orders
+        real(sp), dimension(2 * order - 1, n) :: blocks
+        complex(sp), dimension(n, n) :: u
+
+        call make_laplacian_2d(n, order, dx, blocks, orders)
+        call hamiltonian_2d(pumping, coeffs, u0, u, blocks, orders, order, n)
+
+        mu = real(dot_product(reshape(u0, (/ n * n /)), reshape(u, (/ n * n /))) / &
+                 dot_product(reshape(u, (/ n * n /)), reshape(u, (/ n * n /))))
+    end subroutine chemical_potential_2d    
 
 end module nls

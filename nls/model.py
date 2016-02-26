@@ -7,8 +7,10 @@ from __future__ import print_function
 
 from pprint import pprint
 from time import time
+from types import FunctionType
 from datetime import datetime
 from numpy import array, exp, sqrt, arange, ones, zeros, meshgrid, mgrid, linspace, angle, gradient
+from scipy.integrate import simps
 from scipy.io import loadmat, savemat
 from mpl_toolkits.mplot3d import Axes3D
 from matplotlib import animation, cm
@@ -64,6 +66,9 @@ class Problem(object):
 
         if type(kwargs['u0']) in (int, float, complex):
             kwargs['u0'] = kwargs['u0'] * ones(kwargs['num_nodes']) 
+        elif isinstance(kwargs['u0'], FunctionType):
+            grid = linspace(0.0, kwargs['dx'] * kwargs['num_nodes'], kwargs['num_nodes'])
+            kwargs['u0'] = kwargs['u0'](grid)
 
         return Model1D(**kwargs)
 
@@ -106,6 +111,12 @@ class AbstractModel(object):
         """Call solver that is aggregated certain child objects.
         """
         return self.solver(num_iters)
+
+    def getChemicalPotential(self):
+        """Call solver in order to calculate chemical potential.
+        """
+        self.mu = self.solver.chemicalPotential()
+        return self.mu
 
     def store(self, filename=None, label='', desc='', date=datetime.now()):
         """Store object to mat-file. TODO: determine format specification
@@ -235,6 +246,9 @@ class Solution(object):
 
     def getElapsedTime(self):
         return self.elapsed_time
+
+    def getParticleNumber(self, method='simps'):
+        return simps((self.solution.conj() * self.solution).real, dx=self.dx)
 
     def setNumberOfIterations(self, num_iters):
         self.num_iters = num_iters
