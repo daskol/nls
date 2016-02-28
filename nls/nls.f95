@@ -981,7 +981,7 @@ contains
         call make_laplacian(n, order, dx, op)
         call hamiltonian(pumping, coeffs, u0, u, op, klu, n)
 
-        mu = real(dot_product(u0, u) / dot_product(u, u))
+        mu = -real(dot_product(u0, u) / dot_product(u, u))
     end subroutine chemical_potential_1d
 
     subroutine chemical_potential_2d(dx, n, pumping, coeffs, u0, mu)
@@ -1000,7 +1000,7 @@ contains
         call make_laplacian_2d(n, order, dx, blocks, orders)
         call hamiltonian_2d(pumping, coeffs, u0, u, blocks, orders, order, n)
 
-        mu = real(dot_product(reshape(u0, (/ n * n /)), reshape(u, (/ n * n /))) / &
+        mu = -real(dot_product(reshape(u0, (/ n * n /)), reshape(u, (/ n * n /))) / &
                  dot_product(reshape(u, (/ n * n /)), reshape(u, (/ n * n /))))
     end subroutine chemical_potential_2d    
 
