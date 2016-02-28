@@ -311,7 +311,7 @@ class Solution(object):
         u = (self.solution.conj() * self.solution).real  # density profile
         n = self.coeffs[11] *  p / (self.coeffs[12] + self.coeffs[13] * u)
 
-        fig = figure()
+        fig = kwargs['figure'] if 'figure' in kwargs else figure()
 
         def surface_plot(subplot_number, value, label, name, labels):
             ax = fig.add_subplot(130 + subplot_number, projection='3d')
@@ -354,17 +354,22 @@ class Solution(object):
             ax.set_xlabel(labels[0])
             ax.set_ylabel(labels[1])
             ax.set_title(name)
-            ax.imshow(value, extent=extent)
+            ax.imshow(value[0], extent=extent)
+            ax.contour(gx, gy, value[1].real, [0.0], colors='red', extent=extent)
+            ax.contour(gx, gy, value[1].imag, [0.0], colors='blue', extent=extent)
         
         if 'stream' in kwargs and kwargs['stream']:
             stream_plot(1, (u, angle(self.solution)), 'phase gradient', 'Condensate streams', ('x', 'y'))
-            density_plot(2, u, 'density', 'Density distribution of BEC.', ('x', 'y'))
+            density_plot(2, (u, self.solution), 'density', 'Density distribution of BEC.', ('x', 'y'))
         else:
             helper_plot = contour_plot if 'contour' in kwargs and kwargs['contour'] else surface_plot
 
             helper_plot(1, p, 'pumping', 'Pumping profile.', ('x', 'y', 'p'))
             helper_plot(2, u, 'density', 'Density distribution of BEC.', ('x', 'y', 'u'))
             helper_plot(3, n, 'reservoir', 'Density distribution of reservoir.', ('x', 'y', 'n'))
+
+        if 'filename' in kwargs:
+            fig.savefig(kwargs['filename'])
 
     def show(self):
         show()
