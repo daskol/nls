@@ -67,7 +67,7 @@ def setup_package():
             FortranExtension(
                 name='nls.native',
                 sources=[
-                    'nls/nls.f95'
+                    'nls/nls.f90'
                 ],
                 libraries=[
                     'blas',
