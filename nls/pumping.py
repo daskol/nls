@@ -91,6 +91,24 @@ class OpMulPumping(AbstractPumping):
         return repr(self.lhs) + u' x ' + repr(self.rhs)
 
 
+class GridPumping(AbstractPumping):
+    """This class represents general grid approximation of pumping profile. Also it is used to represet custom pumpings
+    as well as loaded from file pumping.
+    """
+
+    def __init__(self, pumping, desciption=None):
+        super(GridPumping, self).__init__()
+
+        self.pumping = pumping
+        self.desciption = desciption if desciption else '<class GridPumping>'
+
+    def __call__(self, *args, **kwargs):
+        return self.pumping
+
+    def __repr__(self):
+        return self.desciption
+
+
 class GaussianPumping(AbstractPumping):
     """Steady state gaussian pumping with given origin, maximum power, and decay.
     """

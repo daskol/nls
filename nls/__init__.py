@@ -7,6 +7,7 @@ from __future__ import print_function
 from .animation import *
 from .model import *
 from .pumping import *
+from .version import version
 
 __all__ = [
     'animation',
@@ -14,12 +15,5 @@ __all__ = [
     'native'
     'pumping',
     'solver',
+    'version',
 ]
-
-MAJOR = 0
-MINOR = 1
-PATCH = 0
-
-
-def version():
-    return  MAJOR, MINOR, PATCH

@@ -18,6 +18,7 @@ from .animation import *
 from .native import *
 from .pumping import *
 from .solver import *
+from .version import *
 
 
 class Problem(object):
@@ -250,9 +251,9 @@ class Solution(object):
 
     @staticmethod
     def load(filename):
-        pprint('Default <Solution> object creation...')
+        print('Default <Solution> object creation...')
         self = Problem().model().solution
-        pprint('Restoring <Solution> object...')
+        print('Restoring <Solution> object...')
         self.restore(filename)
         return self
 
@@ -382,12 +383,17 @@ class Solution(object):
 
         matfile = {}
         matfile['desc'] = desc
+        matfile['dim'] = len(self.solution.shape)
         matfile['dimlesses'] = self.coeffs
         matfile['elapsed_time'] = self.elapsed_time
+        matfile['init_solution'] = self.init_sol
         matfile['label'] = label
+        matfile['num_nodes'] = self.num_nodes
+        matfile['num_iters'] = self.num_iters
         matfile['originals'] = self.originals
         matfile['pumping'] = self.getPumping()
         matfile['solution'] = self.solution
+        matfile['version'] = version()
 
         savemat(filename, matfile)
 
@@ -396,12 +402,21 @@ class Solution(object):
         """
         matfile = loadmat(filename)
 
+        if matfile['dim'] == 1:
+            matfile['init_solution'] = matfile['init_solution'][0, :]
+            matfile['pumping'] = matfile['pumping'][0, :]
+            matfile['solution'] = matfile['solution'][0, :]
+
         self.desc = str(matfile['desc'][0]) if matfile['desc'].size else ''
         self.coeffs = matfile['dimlesses'].T
-        self.elapsed_time = matfile['elapsed_time']
+        self.elapsed_time = matfile['elapsed_time'][0, 0]
+        self.init_sol = matfile['init_solution']
         self.label = str(matfile['label'][0]) if matfile['label'].size else ''
+        self.num_nodes = matfile['num_nodes'][0, 0]
+        self.num_iters = matfile['num_iters'][0, 0]
         self.originals = {}
-        self.solution = matfile['solution'].T
+        self.pumping = GridPumping(matfile['pumping'])
+        self.solution = matfile['solution']
 
         return self
 

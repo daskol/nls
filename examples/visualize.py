@@ -7,6 +7,11 @@ from __future__ import print_function
 from argparse import ArgumentParser
 from sys import path
 
+try:
+    import seaborn as sns
+except ImportError:
+    pass
+
 # Extend path variable in order to import fortran routines
 NLS_MODULE_PATH = '../'
 
@@ -28,6 +33,8 @@ def main():
     args = parser.parse_args()
 
     solution = Solution.load(args.solution_path)
+    solution.visualize()
+    solution.show()
 
 
 if __name__ == '__main__':
