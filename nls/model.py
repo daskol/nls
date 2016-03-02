@@ -20,6 +20,7 @@ from .animation import *
 from .native import *
 from .pumping import *
 from .solver import *
+from .version import *
 
 
 class Problem(object):
@@ -45,7 +46,19 @@ class Problem(object):
         if 'params' in kwargs:
             params = kwargs.pop('params')
 
-        kwargs['model'] == 'default' if 'model' not in kwargs else kwargs['model']
+        kwargs['model'] = 'default' if 'model' not in kwargs else kwargs['model']
+        kwargs['original_params'] = {} if 'original_params' not in kwargs else kwargs['original_params']
+
+        if 'R' not in kwargs['original_params']:
+            kwargs['original_params']['R'] = 0.0242057488654
+        if 'gamma' not in kwargs['original_params']:
+            kwargs['original_params']['gamma'] = 0.0242057488654
+        if 'g' not in kwargs['original_params']:
+            kwargs['original_params']['g'] = 0.00162178517398
+        if 'tilde_g' not in kwargs['original_params']:
+            kwargs['original_params']['tilde_g'] = 0.0169440242057
+        if 'gamma_R' not in kwargs['original_params']:
+            kwargs['original_params']['gamma_R'] = 0.242057488654
 
         if 'model' in kwargs and kwargs['model'] in ('1d', 'default'):
             return self.fabricateModel1D(*args, **kwargs)
@@ -247,8 +260,18 @@ class Solution(object):
     def getElapsedTime(self):
         return self.elapsed_time
 
+<<<<<<< HEAD
     def getParticleNumber(self, method='simps'):
         return simps((self.solution.conj() * self.solution).real, dx=self.dx)
+=======
+    @staticmethod
+    def load(filename):
+        print('Default <Solution> object creation...')
+        self = Problem().model().solution
+        print('Restoring <Solution> object...')
+        self.restore(filename)
+        return self
+>>>>>>> solution-storage
 
     def setNumberOfIterations(self, num_iters):
         self.num_iters = num_iters
@@ -381,12 +404,17 @@ class Solution(object):
 
         matfile = {}
         matfile['desc'] = desc
+        matfile['dim'] = len(self.solution.shape)
         matfile['dimlesses'] = self.coeffs
         matfile['elapsed_time'] = self.elapsed_time
+        matfile['init_solution'] = self.init_sol
         matfile['label'] = label
+        matfile['num_nodes'] = self.num_nodes
+        matfile['num_iters'] = self.num_iters
         matfile['originals'] = self.originals
         matfile['pumping'] = self.getPumping()
         matfile['solution'] = self.solution
+        matfile['version'] = version()
 
         savemat(filename, matfile)
 
@@ -395,12 +423,21 @@ class Solution(object):
         """
         matfile = loadmat(filename)
 
+        if matfile['dim'] == 1:
+            matfile['init_solution'] = matfile['init_solution'][0, :]
+            matfile['pumping'] = matfile['pumping'][0, :]
+            matfile['solution'] = matfile['solution'][0, :]
+
         self.desc = str(matfile['desc'][0]) if matfile['desc'].size else ''
         self.coeffs = matfile['dimlesses'].T
-        self.elapsed_time = matfile['elapsed_time']
+        self.elapsed_time = matfile['elapsed_time'][0, 0]
+        self.init_sol = matfile['init_solution']
         self.label = str(matfile['label'][0]) if matfile['label'].size else ''
+        self.num_nodes = matfile['num_nodes'][0, 0]
+        self.num_iters = matfile['num_iters'][0, 0]
         self.originals = {}
-        self.solution = matfile['solution'].T
+        self.pumping = GridPumping(matfile['pumping'])
+        self.solution = matfile['solution']
 
         return self
 
