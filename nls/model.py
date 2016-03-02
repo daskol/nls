@@ -260,10 +260,9 @@ class Solution(object):
     def getElapsedTime(self):
         return self.elapsed_time
 
-<<<<<<< HEAD
     def getParticleNumber(self, method='simps'):
         return simps((self.solution.conj() * self.solution).real, dx=self.dx)
-=======
+
     @staticmethod
     def load(filename):
         print('Default <Solution> object creation...')
@@ -271,7 +270,6 @@ class Solution(object):
         print('Restoring <Solution> object...')
         self.restore(filename)
         return self
->>>>>>> solution-storage
 
     def setNumberOfIterations(self, num_iters):
         self.num_iters = num_iters

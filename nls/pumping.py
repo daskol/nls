@@ -4,7 +4,7 @@
 #   (c) Daniel Bershatsky, 2016
 #   See LICENSE for details
 
-from numpy import exp, sqrt
+from numpy import arctan2, exp, sqrt, cos, sin
 
 
 class AbstractPumping(object):
@@ -175,3 +175,27 @@ class GaussianRingPumping2D(AbstractPumping):
 
     def __repr__(self):
         return '<class GaussianRingPumping2D(AbstractPumping)>'
+
+
+class GaussianElipticPumping2D(AbstractPumping):
+    """Generalization of GaussianRingPumping2D but ring(circle) is replaced with elipse.
+    """
+
+    def __init__(self, power=1.0, x0=0.0, y0=0.0, variation=5.0, a=1.0, b=1.0):
+        super(GaussianElipticPumping2D, self).__init__(power)
+
+        self.x0 = x0
+        self.y0 = y0
+        self.var = variation
+        self.a = a
+        self.b = b
+
+    def __call__(self, x, y, t=None):
+        t = arctan2(x - self.x0, y - self.y0)
+        re = sqrt((self.a * cos(t)) ** 2 + (self.b * sin(t)) ** 2)
+        rp = sqrt(x ** 2 + y ** 2)
+        return self.power * (exp(-(re - rp) ** 2 / (2 * self.var)) + \
+                          exp(-(re + rp) ** 2 / (2 * self.var)))
+
+    def __repr__(self):
+        return u'<class GaussianElipticPumping2D(AbstractPumping)>'
