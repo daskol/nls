@@ -72,25 +72,33 @@ def bench_orders():
 
     savemat('orders.mat', {'orders': orders, 'nodes': nodes, 'times': times})
 
-def visualize(filenames=['nodes.mat', 'iters.mat', 'orders.mat']):
-    nodes_mat = loadmat(filenames[0])
-    iters_mat = loadmat(filenames[1])
-    orders_mat = loadmat(filenames[2])
+def visualize(filenames=('before_nodes.mat', 'before_iters.mat', 'before_orders.mat',
+                         'after_nodes.mat', 'after_iters.mat', 'after_orders.mat')):
+    before_nodes_mat = loadmat(filenames[0])
+    before_iters_mat = loadmat(filenames[1])
+    before_orders_mat = loadmat(filenames[2])
+
+    after_nodes_mat = loadmat(filenames[3])
+    after_iters_mat = loadmat(filenames[4])
+    after_orders_mat = loadmat(filenames[5])
 
     fig = figure()
     ax = fig.add_subplot(1, 3, 1)
-    ax.plot(nodes_mat['nodes'][0], nodes_mat['times'][0], 'x-')
+    ax.plot(before_nodes_mat['nodes'][0], before_nodes_mat['times'][0], 'x-')
+    ax.plot(after_nodes_mat['nodes'][0], after_nodes_mat['times'][0], 'x-')
     ax = fig.add_subplot(1, 3, 2)
-    ax.plot(iters_mat['iters'][0], iters_mat['times'][0], 'x-')
+    ax.plot(before_iters_mat['iters'][0], before_iters_mat['times'][0], 'x-')
+    ax.plot(after_iters_mat['iters'][0], after_iters_mat['times'][0], 'x-')
     ax = fig.add_subplot(1, 3, 3)
-    ax.plot(orders_mat['orders'][0], orders_mat['times'][0], 'x-')
-    ax.plot(orders_mat['orders'][0], orders_mat['times'][1], 'x-')
+    ax.plot(after_orders_mat['orders'][0], after_orders_mat['times'][0], 'x-')
+    ax.plot(before_orders_mat['orders'][0], before_orders_mat['times'][1], 'x-')
     show()
 
 def main():
     bench_num_nodes()
     bench_num_iters()
     bench_orders()
+    visualize()
 
 
 if __name__ == '__main__':
