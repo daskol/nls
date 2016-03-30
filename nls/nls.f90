@@ -418,19 +418,17 @@ contains
 
         integer :: i
 
-        i = 1
-        call rgbmv(x((i - 1) * n + 1:(i + 0) * n), y((i - 1) * n + 1:i * n), sign, blocks(:, 2:4), ms(2), n)
-        call rgbmv(x((i + 0) * n + 1:(i + 1) * n), y((i - 1) * n + 1:i * n), sign, blocks(:, 5:5), ms(3), n)
-
-        do i = 2, n - 1
+        do i = 2, n
             call rgbmv(x((i - 2) * n + 1:(i - 1) * n), y((i - 1) * n + 1:i * n), sign, blocks(:, 1:1), ms(1), n)
-            call rgbmv(x((i - 1) * n + 1:(i + 0) * n), y((i - 1) * n + 1:i * n), sign, blocks(:, 2:4), ms(2), n)
-            call rgbmv(x((i - 0) * n + 1:(i + 1) * n), y((i - 1) * n + 1:i * n), sign, blocks(:, 5:5), ms(3), n)
         end do
 
-        i = n
-        call rgbmv(x((i - 2) * n + 1:(i - 1) * n), y((i - 1) * n + 1:i * n), sign, blocks(:, 5:5), ms(1), n)
-        call rgbmv(x((i - 1) * n + 1:(i - 0) * n), y((i - 1) * n + 1:i * n), sign, blocks(:, 2:4), ms(2), n)
+        do i = 1, n
+            call rgbmv(x((i - 1) * n + 1:(i + 0) * n), y((i - 1) * n + 1:i * n), sign, blocks(:, 2:4), ms(2), n)
+        end do
+
+        do i = 1, n - 1
+            call rgbmv(x((i + 0) * n + 1:(i + 1) * n), y((i - 1) * n + 1:i * n), sign, blocks(:, 5:5), ms(3), n)
+        end do
     end subroutine rbbmv_o3
 
     subroutine rbbmv_o5(x, y, sign, blocks, ms, n)
@@ -446,35 +444,25 @@ contains
 
         integer :: i
 
-        i = 1
-        call rgbmv(x((i - 1) * n + 1:(i + 0) * n), y((i - 1) * n + 1:i * n), sign, blocks(:, 3:7), ms(3), n)
-        call rgbmv(x((i + 0) * n + 1:(i + 1) * n), y((i - 1) * n + 1:i * n), sign, blocks(:, 8:8), ms(4), n)
-        call rgbmv(x((i + 1) * n + 1:(i + 2) * n), y((i - 1) * n + 1:i * n), sign, blocks(:, 9:9), ms(5), n)
-
-        i = 2
-        call rgbmv(x((i - 2) * n + 1:(i - 1) * n), y((i - 1) * n + 1:i * n), sign, blocks(:, 2:2), ms(2), n)
-        call rgbmv(x((i - 1) * n + 1:(i + 0) * n), y((i - 1) * n + 1:i * n), sign, blocks(:, 3:7), ms(3), n)
-        call rgbmv(x((i + 0) * n + 1:(i + 1) * n), y((i - 1) * n + 1:i * n), sign, blocks(:, 8:8), ms(4), n)
-        call rgbmv(x((i + 1) * n + 1:(i + 2) * n), y((i - 1) * n + 1:i * n), sign, blocks(:, 9:9), ms(5), n)
-
-        do i = 3, n - 2
-            call rgbmv(x((i - 3) * n + 1:(i - 2) * n), y((i - 1) * n + 1:i * n), sign, blocks(:, 1:1), ms(1), n)
-            call rgbmv(x((i - 2) * n + 1:(i - 1) * n), y((i - 1) * n + 1:i * n), sign, blocks(:, 2:2), ms(2), n)
-            call rgbmv(x((i - 1) * n + 1:(i + 0) * n), y((i - 1) * n + 1:i * n), sign, blocks(:, 3:7), ms(3), n)
-            call rgbmv(x((i - 0) * n + 1:(i + 1) * n), y((i - 1) * n + 1:i * n), sign, blocks(:, 8:8), ms(4), n)
+        do i = 1, n - 2
             call rgbmv(x((i + 1) * n + 1:(i + 2) * n), y((i - 1) * n + 1:i * n), sign, blocks(:, 9:9), ms(5), n)
         end do
 
-        i = n - 1
-        call rgbmv(x((i - 3) * n + 1:(i - 2) * n), y((i - 1) * n + 1:i * n), sign, blocks(:, 1:1), ms(1), n)
-        call rgbmv(x((i - 2) * n + 1:(i - 1) * n), y((i - 1) * n + 1:i * n), sign, blocks(:, 2:2), ms(2), n)
-        call rgbmv(x((i - 1) * n + 1:(i - 0) * n), y((i - 1) * n + 1:i * n), sign, blocks(:, 3:7), ms(3), n)
-        call rgbmv(x((i - 0) * n + 1:(i + 1) * n), y((i - 1) * n + 1:i * n), sign, blocks(:, 8:8), ms(4), n)
+        do i = 1, n - 1
+            call rgbmv(x((i - 0) * n + 1:(i + 1) * n), y((i - 1) * n + 1:i * n), sign, blocks(:, 8:8), ms(4), n)
+        end do
 
-        i = n
-        call rgbmv(x((i - 3) * n + 1:(i - 2) * n), y((i - 1) * n + 1:i * n), sign, blocks(:, 1:1), ms(1), n)
-        call rgbmv(x((i - 2) * n + 1:(i - 1) * n), y((i - 1) * n + 1:i * n), sign, blocks(:, 2:2), ms(2), n)
-        call rgbmv(x((i - 1) * n + 1:(i + 0) * n), y((i - 1) * n + 1:i * n), sign, blocks(:, 3:7), ms(3), n)
+        do i = 1, n
+            call rgbmv(x((i - 1) * n + 1:(i + 0) * n), y((i - 1) * n + 1:i * n), sign, blocks(:, 3:7), ms(3), n)
+        end do
+
+        do i = 2, n
+            call rgbmv(x((i - 2) * n + 1:(i - 1) * n), y((i - 1) * n + 1:i * n), sign, blocks(:, 2:2), ms(2), n)
+        end do
+
+        do i = 3, n
+            call rgbmv(x((i - 3) * n + 1:(i - 2) * n), y((i - 1) * n + 1:i * n), sign, blocks(:, 1:1), ms(1), n)
+        end do
     end subroutine rbbmv_o5
 
     subroutine rbbmv_o7(x, y, sign, blocks, ms, n)
@@ -490,57 +478,33 @@ contains
 
         integer :: i
 
-        i = 1
-        call rgbmv(x((i - 1) * n + 1:(i + 0) * n), y((i - 1) * n + 1:i * n), sign, blocks(:, 4:10), ms(4), n)
-        call rgbmv(x((i - 0) * n + 1:(i + 1) * n), y((i - 1) * n + 1:i * n), sign, blocks(:, 11:11), ms(5), n)
-        call rgbmv(x((i + 1) * n + 1:(i + 2) * n), y((i - 1) * n + 1:i * n), sign, blocks(:, 12:12), ms(6), n)
-        call rgbmv(x((i + 2) * n + 1:(i + 3) * n), y((i - 1) * n + 1:i * n), sign, blocks(:, 13:13), ms(7), n)
-
-        i = 2
-        call rgbmv(x((i - 2) * n + 1:(i - 1) * n), y((i - 1) * n + 1:i * n), sign, blocks(:, 3:3), ms(3), n)
-        call rgbmv(x((i - 1) * n + 1:(i + 0) * n), y((i - 1) * n + 1:i * n), sign, blocks(:, 4:10), ms(4), n)
-        call rgbmv(x((i - 0) * n + 1:(i + 1) * n), y((i - 1) * n + 1:i * n), sign, blocks(:, 11:11), ms(5), n)
-        call rgbmv(x((i + 1) * n + 1:(i + 2) * n), y((i - 1) * n + 1:i * n), sign, blocks(:, 12:12), ms(6), n)
-        call rgbmv(x((i + 2) * n + 1:(i + 3) * n), y((i - 1) * n + 1:i * n), sign, blocks(:, 13:13), ms(7), n)
-
-        i = 3
-        call rgbmv(x((i - 3) * n + 1:(i - 2) * n), y((i - 1) * n + 1:i * n), sign, blocks(:, 2:2), ms(2), n)
-        call rgbmv(x((i - 2) * n + 1:(i - 1) * n), y((i - 1) * n + 1:i * n), sign, blocks(:, 3:3), ms(3), n)
-        call rgbmv(x((i - 1) * n + 1:(i + 0) * n), y((i - 1) * n + 1:i * n), sign, blocks(:, 4:10), ms(4), n)
-        call rgbmv(x((i - 0) * n + 1:(i + 1) * n), y((i - 1) * n + 1:i * n), sign, blocks(:, 11:11), ms(5), n)
-        call rgbmv(x((i + 1) * n + 1:(i + 2) * n), y((i - 1) * n + 1:i * n), sign, blocks(:, 12:12), ms(6), n)
-        call rgbmv(x((i + 2) * n + 1:(i + 3) * n), y((i - 1) * n + 1:i * n), sign, blocks(:, 13:13), ms(7), n)
-
-        do i = 4, n - 3
+        do i = 4, n
             call rgbmv(x((i - 4) * n + 1:(i - 3) * n), y((i - 1) * n + 1:i * n), sign, blocks(:, 1:1), ms(1), n)
-            call rgbmv(x((i - 3) * n + 1:(i - 2) * n), y((i - 1) * n + 1:i * n), sign, blocks(:, 2:2), ms(2), n)
-            call rgbmv(x((i - 2) * n + 1:(i - 1) * n), y((i - 1) * n + 1:i * n), sign, blocks(:, 3:3), ms(3), n)
-            call rgbmv(x((i - 1) * n + 1:(i + 0) * n), y((i - 1) * n + 1:i * n), sign, blocks(:, 4:10), ms(4), n)
-            call rgbmv(x((i - 0) * n + 1:(i + 1) * n), y((i - 1) * n + 1:i * n), sign, blocks(:, 11:11), ms(5), n)
-            call rgbmv(x((i + 1) * n + 1:(i + 2) * n), y((i - 1) * n + 1:i * n), sign, blocks(:, 12:12), ms(6), n)
-            call rgbmv(x((i + 2) * n + 1:(i + 3) * n), y((i - 1) * n + 1:i * n), sign, blocks(:, 13:13), ms(7), n)
         end do
 
-        i = n - 2
-        call rgbmv(x((i - 4) * n + 1:(i - 3) * n), y((i - 1) * n + 1:i * n), sign, blocks(:, 1:1), ms(1), n)
-        call rgbmv(x((i - 3) * n + 1:(i - 2) * n), y((i - 1) * n + 1:i * n), sign, blocks(:, 2:2), ms(2), n)
-        call rgbmv(x((i - 2) * n + 1:(i - 1) * n), y((i - 1) * n + 1:i * n), sign, blocks(:, 3:3), ms(3), n)
-        call rgbmv(x((i - 1) * n + 1:(i + 0) * n), y((i - 1) * n + 1:i * n), sign, blocks(:, 4:10), ms(4), n)
-        call rgbmv(x((i - 0) * n + 1:(i + 1) * n), y((i - 1) * n + 1:i * n), sign, blocks(:, 11:11), ms(5), n)
-        call rgbmv(x((i + 1) * n + 1:(i + 2) * n), y((i - 1) * n + 1:i * n), sign, blocks(:, 12:12), ms(6), n)
+        do i = 3, n
+            call rgbmv(x((i - 3) * n + 1:(i - 2) * n), y((i - 1) * n + 1:i * n), sign, blocks(:, 2:2), ms(2), n)
+        end do
 
-        i = n - 1
-        call rgbmv(x((i - 4) * n + 1:(i - 3) * n), y((i - 1) * n + 1:i * n), sign, blocks(:, 1:1), ms(1), n)
-        call rgbmv(x((i - 3) * n + 1:(i - 2) * n), y((i - 1) * n + 1:i * n), sign, blocks(:, 2:2), ms(2), n)
-        call rgbmv(x((i - 2) * n + 1:(i - 1) * n), y((i - 1) * n + 1:i * n), sign, blocks(:, 3:3), ms(3), n)
-        call rgbmv(x((i - 1) * n + 1:(i + 0) * n), y((i - 1) * n + 1:i * n), sign, blocks(:, 4:10), ms(4), n)
-        call rgbmv(x((i - 0) * n + 1:(i + 1) * n), y((i - 1) * n + 1:i * n), sign, blocks(:, 11:11), ms(5), n)
+        do i = 2, n
+            call rgbmv(x((i - 2) * n + 1:(i - 1) * n), y((i - 1) * n + 1:i * n), sign, blocks(:, 3:3), ms(3), n)
+        end do
 
-        i = n
-        call rgbmv(x((i - 4) * n + 1:(i - 3) * n), y((i - 1) * n + 1:i * n), sign, blocks(:, 1:1), ms(1), n)
-        call rgbmv(x((i - 3) * n + 1:(i - 2) * n), y((i - 1) * n + 1:i * n), sign, blocks(:, 2:2), ms(2), n)
-        call rgbmv(x((i - 2) * n + 1:(i - 1) * n), y((i - 1) * n + 1:i * n), sign, blocks(:, 3:3), ms(3), n)
-        call rgbmv(x((i - 1) * n + 1:(i + 0) * n), y((i - 1) * n + 1:i * n), sign, blocks(:, 4:10), ms(4), n)
+        do i = 1, n
+            call rgbmv(x((i - 1) * n + 1:(i + 0) * n), y((i - 1) * n + 1:i * n), sign, blocks(:, 4:10), ms(4), n)
+        end do
+
+        do i = 1, n - 1
+            call rgbmv(x((i - 0) * n + 1:(i + 1) * n), y((i - 1) * n + 1:i * n), sign, blocks(:, 11:11), ms(5), n)
+        end do
+
+        do i = 1, n - 2
+            call rgbmv(x((i + 1) * n + 1:(i + 2) * n), y((i - 1) * n + 1:i * n), sign, blocks(:, 12:12), ms(6), n)
+        end do
+
+        do i = 1, n - 3
+            call rgbmv(x((i + 2) * n + 1:(i + 3) * n), y((i - 1) * n + 1:i * n), sign, blocks(:, 13:13), ms(7), n)
+        end do
     end subroutine rbbmv_o7
 
     subroutine rbbmv(x, y, sign, blocks, ms, m, n)
