@@ -4,6 +4,7 @@
 #   See LISENCE for details.
 
 from __future__ import print_function
+from argparse import ArgumentParser
 from sys import path
 
 path.append('..')
@@ -11,7 +12,9 @@ path.append('..')
 from nls.model import Problem
 from nls.pumping import GaussianPumping2D
 
+from numpy import polyfit, polyval, linspace
 from scipy.io import savemat, loadmat
+from seaborn import color_palette
 from matplotlib.pyplot import figure, show
 
 
@@ -35,7 +38,7 @@ def create_model(num_nodes=200, num_iters=2000, order=5):
         })
 
 def bench_num_nodes():
-    nodes = [50, 100, 200, 500, 1000]
+    nodes = [50, 100, 200, 300, 400, 500, 700, 1000]
     times = []
 
     for i, num_nodes in enumerate(nodes):
@@ -72,33 +75,69 @@ def bench_orders():
 
     savemat('orders.mat', {'orders': orders, 'nodes': nodes, 'times': times})
 
-def visualize(filenames=('before_nodes.mat', 'before_iters.mat', 'before_orders.mat',
-                         'after_nodes.mat', 'after_iters.mat', 'after_orders.mat')):
-    before_nodes_mat = loadmat(filenames[0])
-    before_iters_mat = loadmat(filenames[1])
-    before_orders_mat = loadmat(filenames[2])
+def visualize(filenames=('nodes.mat', 'iters.mat', 'orders.mat')):
+    nodes_mat = loadmat(filenames[0])
+    iters_mat = loadmat(filenames[1])
+    orders_mat = loadmat(filenames[2])
 
-    after_nodes_mat = loadmat(filenames[3])
-    after_iters_mat = loadmat(filenames[4])
-    after_orders_mat = loadmat(filenames[5])
+    palette = color_palette('muted')
 
-    fig = figure()
+    # curve fitting
+    nodes = linspace(min(nodes_mat['nodes'][0]), max(nodes_mat['nodes'][0]), 50)
+    nodes_poly = polyfit(list(nodes_mat['nodes'][0]) + [0.0], list(nodes_mat['times'][0]) + [0.0], 2)
+
+    iters = linspace(min(iters_mat['iters'][0]), max(iters_mat['iters'][0]), 50)
+    iters_poly = polyfit(iters_mat['iters'][0], iters_mat['times'][0], 1)
+
+    # plotting
+
+    fig = figure(figsize=(17, 6))
+
     ax = fig.add_subplot(1, 3, 1)
-    ax.plot(before_nodes_mat['nodes'][0], before_nodes_mat['times'][0], 'x-')
-    ax.plot(after_nodes_mat['nodes'][0], after_nodes_mat['times'][0], 'x-')
+    ax.plot(nodes_mat['nodes'][0], nodes_mat['times'][0], 'o-', label='exp')
+    ax.plot(nodes, polyval(nodes_poly, nodes), label='fit')
+    ax.set_ylim(0.0)
+    ax.set_xlabel('nodes')
+    ax.set_ylabel('time, s')
+    ax.legend(loc='best')
+
     ax = fig.add_subplot(1, 3, 2)
-    ax.plot(before_iters_mat['iters'][0], before_iters_mat['times'][0], 'x-')
-    ax.plot(after_iters_mat['iters'][0], after_iters_mat['times'][0], 'x-')
+    ax.plot(iters_mat['iters'][0], iters_mat['times'][0], 'o-', label='exp')
+    ax.plot(iters, polyval(iters_poly, iters), label='fit')
+    ax.set_xlabel('iterations')
+    ax.set_ylabel('time, s')
+    ax.legend(loc='best')
+
     ax = fig.add_subplot(1, 3, 3)
-    ax.plot(after_orders_mat['orders'][0], after_orders_mat['times'][0], 'x-')
-    ax.plot(before_orders_mat['orders'][0], before_orders_mat['times'][1], 'x-')
+    ax.bar(orders_mat['orders'][0] + 0.2, orders_mat['times'][0], color=palette[0], label='200x200')
+    ax.bar(orders_mat['orders'][0] + 1.0, orders_mat['times'][1], color=palette[1], label='400x400')
+    ax.set_xlabel('approximation order')
+    ax.set_ylabel('time, s')
+    ax.set_xticks((4, 6, 8))
+    ax.set_xticklabels((3, 5, 7))
+    ax.legend(loc='best')
+    
+    fig.savefig('benchmark.png')
     show()
 
 def main():
-    bench_num_nodes()
-    bench_num_iters()
-    bench_orders()
-    visualize()
+    parser = ArgumentParser(prog='benchmark.py', description='Test perfomance.')
+    parser.add_argument('--only-bench', action='store_true')
+    parser.add_argument('--only-show', action='store_true')
+
+    args = parser.parse_args()
+
+    if args.only_bench and args.only_show:
+        parser.print_help()
+        parser.exit()
+
+    if args.only_bench:
+        bench_num_nodes()
+        bench_num_iters()
+        bench_orders()
+
+    if args.only_show:
+        visualize()
 
 
 if __name__ == '__main__':
