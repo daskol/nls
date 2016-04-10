@@ -4,7 +4,7 @@
 #   (c) Daniel Bershatsky, 2016
 #   See LICENSE for details
 
-from numpy import arctan2, exp, sqrt, cos, sin
+from numpy import arctan2, exp, sqrt, cos, sin, zeros
 
 
 class AbstractPumping(object):
@@ -199,3 +199,31 @@ class GaussianElipticPumping2D(AbstractPumping):
 
     def __repr__(self):
         return u'<class GaussianElipticPumping2D(AbstractPumping)>'
+
+
+class RectangularPumping1D(AbstractPumping):
+
+    def __init__(self, power=10.0, x0=0.0, width=1.0):
+        super(RectangularPumping1D, self).__init__(power)
+
+        print(power)
+        self.x0 = x0
+        self.width = width
+        self.power = power
+
+    def __call__(self, x, t=None):
+        pumping = zeros(x.shape)
+        pumping[(x >= (self.x0 - self.width / 2.0)) & (x <= (self.x0 + self.width / 2.0))] = self.power
+        return pumping
+
+    def __repr__(self):
+        template = u'{0} * (\\theta(x - {1}) - \\theta({2} - x))'
+        return template.format(self.power, self.x0 + self.width / 2.0, self.x0 - self.width / 2.0)
+
+
+class RectangularRingPumping1D(OpSumPumping):
+
+    def __init__(self, power=10.0, radius=10.0, width=2.0):
+        super(RectangularRingPumping1D, self).__init__(
+            RectangularPumping1D(power, +radius, width),
+            RectangularPumping1D(power, -radius, width))
