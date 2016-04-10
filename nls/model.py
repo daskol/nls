@@ -107,17 +107,20 @@ class AbstractModel(object):
     """
 
     def __init__(self, *args, **kwargs):
-        pprint({
-            'dt': kwargs['dt'],
-            'dx': kwargs['dx'],
-            'order': kwargs['order'],
-            'num_nodes': kwargs['num_nodes'],
-            'num_iters': kwargs['num_iters'],
-            'pumping': kwargs['pumping'],
-            'originals': kwargs['original_params'],
-            })
+        if kwargs.get('verbose'):
+            pprint({
+                'dt': kwargs['dt'],
+                'dx': kwargs['dx'],
+                'order': kwargs['order'],
+                'num_nodes': kwargs['num_nodes'],
+                'num_iters': kwargs['num_iters'],
+                'pumping': kwargs['pumping'],
+                'originals': kwargs['original_params'],
+                })
+
         self.solution = Solution(kwargs['dt'], kwargs['dx'], kwargs['num_nodes'], kwargs['order'], kwargs['num_iters'],
                              kwargs['pumping'], kwargs['original_params'], kwargs['u0'])
+        self.solution.model = self
         self.solver = None
 
     def solve(self, num_iters=None):
@@ -131,10 +134,11 @@ class AbstractModel(object):
         self.mu = self.solver.chemicalPotential()
         return self.mu
 
-    def store(self, filename=None, label='', desc='', date=datetime.now()):
+    def store(self, filename=None, label='', desc='', date=None):
         """Store object to mat-file. TODO: determine format specification
         """
-        filename = filename if filename else str(date).replace(' ', '_') + '.mat'
+        date = date if date else datetime.now()
+        filename = filename if filename else date.isoformat() + '.mat'
 
         matfile = {}
         matfile['desc'] = desc
@@ -177,10 +181,13 @@ class Model2D(AbstractModel):
 
 class Solution(object):
     """Object that represents solution of a given model. Also it contains all model parameters and has ability to store
-    and to load solution. TODO: improve design.
+    and to load solution.
+
+    TODO: improve design.
+    TODO: move values that describe a model to model class.
     """
 
-    def __init__(self, dt, dx, num_nodes, order, num_iters, pumping, originals, init_solution):
+    def __init__(self, dt, dx, num_nodes, order, num_iters, pumping, originals, init_solution, verbose=False):
         self.dt = dt
         self.dx = dx
         self.order = order
@@ -192,6 +199,7 @@ class Solution(object):
         self.originals = originals
         self.coeffs = zeros(23)
         self.elapsed_time = 0.0
+        self.verbose = verbose
 
         hbar = 6.61e-34
         m_e = 9.1e-31
@@ -217,22 +225,51 @@ class Solution(object):
         self.coeffs[13] = originals['R'] * phi0 ** 2 / originals['gamma_R']  # interaction term
         self.coeffs[14] = 0.0  # diffusive term
 
-        print(self.coeffs)
-
-    def getTimeStep(self):
-        return self.dt
-
-    def getSpatialStep(self):
-        return self.dx
+        if self.verbose:
+            print(self.coeffs)
 
     def getApproximationOrder(self):
         return self.order
 
-    def getNumberOfNodes(self):
-        return self.num_nodes
+    def getCharacteristicScale(self, scale):
+        hbar = 6.61e-34
+        m_e = 9.1e-31
+        m_0 = 1.0e-5 * m_e
+
+        phi0 = sqrt(self.originals['gamma'] / (2.0 * self.originals['g']))
+        t0 = phi0
+        x0 = sqrt(hbar * t0 / (2 * m_0))
+        n0 = 2.0 / (self.originals['R'] * t0)
+
+        scales = {
+            'x': x0,
+            't': t0,
+            'n': n0,
+            'phi': phi0,
+        }
+
+        return scales[scale] if scale in scales else None
+
+    def getCoefficients(self):
+        return self.coeffs
+
+    def getElapsedTime(self):
+        return self.elapsed_time
+
+    def getInitialSolution(self):
+        return self.init_sol
+
+    def getModel(self):
+        return self.model
 
     def getNumberOfIterations(self):
         return self.num_iters
+
+    def getNumberOfNodes(self):
+        return self.num_nodes
+
+    def getParticleNumber(self, method='simps'):
+        return simps((self.solution.conj() * self.solution).real, dx=self.dx)
 
     def getPumping(self):
         if len(self.init_sol.shape) == 1:
@@ -248,20 +285,14 @@ class Solution(object):
             grid = meshgrid(x, x)
             return self.pumping(*grid)
 
-    def getCoefficients(self):
-        return self.coeffs
-
-    def getInitialSolution(self):
-        return self.init_sol
-
     def getSolution(self):
         return self.solution
 
-    def getElapsedTime(self):
-        return self.elapsed_time
+    def getSpatialStep(self):
+        return self.dx
 
-    def getParticleNumber(self, method='simps'):
-        return simps((self.solution.conj() * self.solution).real, dx=self.dx)
+    def getTimeStep(self):
+        return self.dt
 
     @staticmethod
     def load(filename):
@@ -389,16 +420,17 @@ class Solution(object):
             helper_plot(2, u, 'density', 'Density distribution of BEC.', ('x', 'y', 'u'))
             helper_plot(3, n, 'reservoir', 'Density distribution of reservoir.', ('x', 'y', 'n'))
 
-        if 'filename' in kwargs:
+        if 'filename' in kwargs and kwargs['filename']:
             fig.savefig(kwargs['filename'])
 
     def show(self):
         show()
 
-    def store(self, filename=None, label='', desc='', date=datetime.now()):
+    def store(self, filename=None, label='', desc='', date=None):
         """Store object to mat-file. TODO: determine format specification
         """
-        filename = filename if filename else str(date).replace(' ', '_') + '.mat'
+        date = datetime.now() if date is None else date
+        filename = filename if filename else date.isoformat() + '.mat'
 
         matfile = {}
         matfile['desc'] = desc

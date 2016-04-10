@@ -43,8 +43,11 @@ install:
 lib: glue
 
 glue: checkdirs
+ifeq ($(FCOMPILER),intelem)
+	f2py2 --quiet -lmkl_def -lmkl_intel_lp64 -lmkl_intel_thread -lmkl_core -liomp5 -c nls.f90 -m $(TARGETLIB) --fcompiler=intelem --f90flags='-mkl -heap-arrays'
+else
 	f2py2 --quiet -lblas -c nls.f90 -m $(TARGETLIB)
-	@cp -v $(TARGETLIB).so $(BINDIR)/
+endif
 
 clean:
 	rm -rfv $(patsubst %, $(OBJDIR)/%, $(OBJECTS) $(TARGETMOD).mod)
