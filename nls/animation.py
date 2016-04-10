@@ -3,10 +3,11 @@
 #   (c) Daniel Bershatsky, 2016
 #   See LICENSE for details
 
-from __future__ import print_function
+from __future__ import absolute_import, print_function
 from time import time
 from matplotlib import animation
 from matplotlib.pyplot import figure
+
 from .pumping import GaussianRingPumping1D
 
 

@@ -3,15 +3,17 @@
 #   (c) Daniel Bershatsky, 2016
 #   See LICENSE for details
 
-from __future__ import print_function
+from __future__ import absolute_import, print_function
 
 from pprint import pprint
 from time import time
 from types import FunctionType
 from datetime import datetime
+
 from numpy import array, exp, sqrt, arange, ones, zeros, meshgrid, mgrid, linspace, angle, gradient
 from scipy.integrate import simps
 from scipy.io import loadmat, savemat
+
 from mpl_toolkits.mplot3d import Axes3D
 from matplotlib import animation, cm
 from matplotlib.pyplot import figure, plot, show, title, xlabel, ylabel, subplot, legend, xlim, ylim, contourf, hold, colorbar
@@ -19,7 +21,6 @@ from matplotlib.pyplot import figure, plot, show, title, xlabel, ylabel, subplot
 from .animation import *
 from .native import *
 from .pumping import *
-from .solver import *
 from .version import *
 
 
@@ -118,21 +119,118 @@ class AbstractModel(object):
                 'originals': kwargs['original_params'],
                 })
 
-        self.solution = Solution(kwargs['dt'], kwargs['dx'], kwargs['num_nodes'], kwargs['order'], kwargs['num_iters'],
-                             kwargs['pumping'], kwargs['original_params'], kwargs['u0'])
-        self.solution.model = self
+        self.dt = kwargs['dt']
+        self.dx = kwargs['dx']
+        self.order = kwargs['order']
+        self.num_nodes = kwargs['num_nodes']
+        self.num_iters = kwargs['num_iters']
+        self.pumping = kwargs['pumping']
+        self.init_sol = kwargs['u0']
+        self.originals = kwargs['original_params']
+        self.coeffs = zeros(23)
+        self.verbose = bool(kwargs.get('verbose'))
         self.solver = None
+
+        hbar = 6.61e-34
+        m_e = 9.1e-31
+        m_0 = 1.0e-5 * m_e
+
+        phi0 = sqrt(self.originals['gamma'] / (2.0 * self.originals['g']))
+        t0 = phi0
+        x0 = sqrt(hbar * t0 / (2 * m_0))
+        n0 = 2.0 / (self.originals['R'] * t0)
+
+        # NLS equation coeficients
+        self.coeffs[0] = 1.0  # \partial_t
+        self.coeffs[1] = 1.0  # \nabla^2
+        self.coeffs[2] = 1.0  #
+        self.coeffs[3] = 1.0  # linear damping
+        self.coeffs[4] = 1.0  # self.originals['g'] * phi0 ** 3  # nonlinearity
+        self.coeffs[5] = 4.0 * self.originals['tilde_g'] / self.originals['R']  #* phi0 * n0  # interaction to reservoir
+
+        # Reservoir equation coefficients
+        self.coeffs[10] = 0.0  # \parital_t
+        self.coeffs[11] = 1.0 / (n0 * self.originals['gamma_R'])  # pumping coefficient
+        self.coeffs[12] = 1.0  # damping
+        self.coeffs[13] = self.originals['R'] * phi0 ** 2 / self.originals['gamma_R']  # interaction term
+        self.coeffs[14] = 0.0  # diffusive term
+
+        if self.verbose:
+            print(self.coeffs)
 
     def solve(self, num_iters=None):
         """Call solver that is aggregated certain child objects.
         """
         return self.solver(num_iters)
 
+    def getApproximationOrder(self):
+        return self.order
+
+    def getCharacteristicScale(self, scale):
+        hbar = 6.61e-34
+        m_e = 9.1e-31
+        m_0 = 1.0e-5 * m_e
+
+        phi0 = sqrt(self.originals['gamma'] / (2.0 * self.originals['g']))
+        t0 = phi0
+        x0 = sqrt(hbar * t0 / (2 * m_0))
+        n0 = 2.0 / (self.originals['R'] * t0)
+
+        scales = {
+            'x': x0,
+            't': t0,
+            'n': n0,
+            'phi': phi0,
+        }
+
+        return scales[scale] if scale in scales else None
+
     def getChemicalPotential(self):
         """Call solver in order to calculate chemical potential.
         """
         self.mu = self.solver.chemicalPotential()
         return self.mu
+
+    def getCoefficients(self):
+        return self.coeffs
+
+    def getInitialSolution(self):
+        return self.init_sol
+
+    def getModel(self):
+        return self.model
+
+    def getNumberOfIterations(self):
+        return self.num_iters
+
+    def getNumberOfNodes(self):
+        return self.num_nodes
+
+    def getParticleNumber(self, method='simps'):
+        return simps((self.solution.conj() * self.solution).real, dx=self.dx)
+
+    def getPumping(self):
+        if len(self.init_sol.shape) == 1:
+            right = self.num_nodes * self.dx
+            left = 0.0
+            x = linspace(left, right, self.num_nodes)
+            grid = meshgrid(x)
+            return self.pumping(*grid)
+        else:
+            right = self.num_nodes * self.dx / 2
+            left = -right
+            x = linspace(left, right, self.num_nodes)
+            grid = meshgrid(x, x)
+            return self.pumping(*grid)
+
+    def getSpatialStep(self):
+        return self.dx
+
+    def getSolver(self):
+        return self.solver
+
+    def getTimeStep(self):
+        return self.dt
 
     def store(self, filename=None, label='', desc='', date=None):
         """Store object to mat-file. TODO: determine format specification
@@ -166,7 +264,7 @@ class Model1D(AbstractModel):
     def __init__(self, *args, **kwargs):
         super(Model1D, self).__init__(*args, **kwargs)
 
-        self.solver = Solver1D(self.solution)
+        self.solver = Solver1D(self)
 
 
 class Model2D(AbstractModel):
@@ -176,7 +274,7 @@ class Model2D(AbstractModel):
     def __init__(self, *args, **kwargs):
         super(Model2D, self).__init__(*args, **kwargs)
 
-        self.solver = Solver2D(self.solution)
+        self.solver = Solver2D(self)
 
 
 class Solution(object):
@@ -184,115 +282,25 @@ class Solution(object):
     and to load solution.
 
     TODO: improve design.
-    TODO: move values that describe a model to model class.
     """
 
-    def __init__(self, dt, dx, num_nodes, order, num_iters, pumping, originals, init_solution, verbose=False):
-        self.dt = dt
-        self.dx = dx
-        self.order = order
-        self.num_nodes = num_nodes
-        self.num_iters = num_iters
-        self.pumping = pumping
-        self.init_sol = init_solution
-        self.solution = None
-        self.originals = originals
-        self.coeffs = zeros(23)
+    def __init__(self, model, solution=None, verbose=False):
         self.elapsed_time = 0.0
+        self.model = model
+        self.solution = solution
         self.verbose = verbose
-
-        hbar = 6.61e-34
-        m_e = 9.1e-31
-        m_0 = 1.0e-5 * m_e
-
-        phi0 = sqrt(originals['gamma'] / (2.0 * originals['g']))
-        t0 = phi0
-        x0 = sqrt(hbar * t0 / (2 * m_0))
-        n0 = 2.0 / (originals['R'] * t0)
-
-        # NLS equation coeficients
-        self.coeffs[0] = 1.0  # \partial_t
-        self.coeffs[1] = 1.0  # \nabla^2
-        self.coeffs[2] = 1.0  #
-        self.coeffs[3] = 1.0  # linear damping
-        self.coeffs[4] = 1.0  # originals['g'] * phi0 ** 3  # nonlinearity
-        self.coeffs[5] = 4.0 * originals['tilde_g'] / originals['R']  #* phi0 * n0  # interaction to reservoir
-
-        # Reservoir equation coefficients
-        self.coeffs[10] = 0.0  # \parital_t
-        self.coeffs[11] = 1.0 / (n0 * originals['gamma_R'])  # pumping coefficient
-        self.coeffs[12] = 1.0  # damping
-        self.coeffs[13] = originals['R'] * phi0 ** 2 / originals['gamma_R']  # interaction term
-        self.coeffs[14] = 0.0  # diffusive term
-
-        if self.verbose:
-            print(self.coeffs)
-
-    def getApproximationOrder(self):
-        return self.order
-
-    def getCharacteristicScale(self, scale):
-        hbar = 6.61e-34
-        m_e = 9.1e-31
-        m_0 = 1.0e-5 * m_e
-
-        phi0 = sqrt(self.originals['gamma'] / (2.0 * self.originals['g']))
-        t0 = phi0
-        x0 = sqrt(hbar * t0 / (2 * m_0))
-        n0 = 2.0 / (self.originals['R'] * t0)
-
-        scales = {
-            'x': x0,
-            't': t0,
-            'n': n0,
-            'phi': phi0,
-        }
-
-        return scales[scale] if scale in scales else None
-
-    def getCoefficients(self):
-        return self.coeffs
 
     def getElapsedTime(self):
         return self.elapsed_time
 
-    def getInitialSolution(self):
-        return self.init_sol
-
-    def getModel(self):
-        return self.model
-
-    def getNumberOfIterations(self):
-        return self.num_iters
-
-    def getNumberOfNodes(self):
-        return self.num_nodes
-
-    def getParticleNumber(self, method='simps'):
-        return simps((self.solution.conj() * self.solution).real, dx=self.dx)
-
-    def getPumping(self):
-        if len(self.init_sol.shape) == 1:
-            right = self.num_nodes * self.dx
-            left = 0.0
-            x = linspace(left, right, self.num_nodes)
-            grid = meshgrid(x)
-            return self.pumping(*grid)
-        else:
-            right = self.num_nodes * self.dx / 2
-            left = -right
-            x = linspace(left, right, self.num_nodes)
-            grid = meshgrid(x, x)
-            return self.pumping(*grid)
-
     def getSolution(self):
         return self.solution
 
-    def getSpatialStep(self):
-        return self.dx
+    def setElapsedTime(self, seconds):
+        self.elapsed_time = seconds
 
-    def getTimeStep(self):
-        return self.dt
+    def setSolution(self, solution):
+        self.solution = solution
 
     @staticmethod
     def load(filename):
@@ -311,23 +319,17 @@ class Solution(object):
     def setInitialSolution(self, solution):
         self.init_sol = solution
 
-    def setSolution(self, solution):
-        self.solution = solution
-
-    def setElapsedTime(self, seconds):
-        self.elapsed_time = seconds
-
     def visualize(self, *args, **kwargs):
-        if len(self.init_sol.shape) == 1:
+        if len(self.model.init_sol.shape) == 1:
             self.visualize1d(*args, **kwargs)
         else:
             self.visualize2d(*args, **kwargs)
 
     def visualize1d(self, *args, **kwargs):
-        x = arange(0.0, self.dx * self.num_nodes, self.dx)
-        p = self.pumping(x)  # pumping profile
+        x = arange(0.0, self.model.dx * self.model.num_nodes, self.model.dx)
+        p = self.model.pumping(x)  # pumping profile
         u = (self.solution.conj() * self.solution).real  # density profile
-        n = self.coeffs[11] *  p / (self.coeffs[12] + self.coeffs[13] * u)
+        n = self.model.coeffs[11] *  p / (self.model.coeffs[12] + self.model.coeffs[13] * u)
 
         def rect_plot(subplot_number, value, label, name, labelx, labely, xmax=20):
             subplot(2, 3, subplot_number)
@@ -355,13 +357,13 @@ class Solution(object):
         polar_plot(6, n)
 
     def visualize2d(self, *args, **kwargs):
-        right = self.num_nodes * self.dx / 2
+        right = self.model.num_nodes * self.model.dx / 2
         left = -right
-        x = linspace(left, right, self.num_nodes)
+        x = linspace(left, right, self.model.num_nodes)
         gx, gy = meshgrid(x, x)
-        p = self.getPumping()
+        p = self.model.getPumping()
         u = (self.solution.conj() * self.solution).real  # density profile
-        n = self.coeffs[11] *  p / (self.coeffs[12] + self.coeffs[13] * u)
+        n = self.model.coeffs[11] *  p / (self.model.coeffs[12] + self.model.coeffs[13] * u)
 
         fig = kwargs['figure'] if 'figure' in kwargs else figure()
 
@@ -420,7 +422,7 @@ class Solution(object):
             helper_plot(2, u, 'density', 'Density distribution of BEC.', ('x', 'y', 'u'))
             helper_plot(3, n, 'reservoir', 'Density distribution of reservoir.', ('x', 'y', 'n'))
 
-        if 'filename' in kwargs and kwargs['filename']:
+        if kwargs.get('filename'):
             fig.savefig(kwargs['filename'])
 
     def show(self):
@@ -473,4 +475,7 @@ class Solution(object):
 
     def report(self):
         message = 'Elapsed in {0} seconds with {1} iteration on {2} grid nodes.'
-        print(message.format(self.elapsed_time, self.num_iters, self.num_nodes))
+        print(message.format(self.elapsed_time, self.model.getNumberOfIterations(), self.model.getNumberOfNodes()))
+
+
+from .solver import *  # cyclic import fix

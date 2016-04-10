@@ -4,6 +4,7 @@
 #   (c) Daniel Bershatsky, 2016
 #   See LICENSE for details
 
+from __future__ import absolute_import
 from numpy import arctan2, exp, sqrt, cos, sin, zeros
 
 

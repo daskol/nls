@@ -3,32 +3,35 @@
 #   (c) Daniel Bershatsky, 2016
 #   See LICENSE for details
 
-from __future__ import print_function
+from __future__ import absolute_import, print_function
+from time import time
+
 from .native import nls
-from .model import *
+from .model import Solution
 
 
 class AbstractSolver(object):
     """Wrapper(or Facade template) of native fortran subroutine `solve_nls`.
     """
     
-    def __init__(self, solution):
-        self.solution = solution
+    def __init__(self, model):
+        self.model = model
         self.elapsed_time = 0.0
 
     def __call__(self, num_iters=None):
         if num_iters:
-            self.solution.setNumberOfIterations(num_iters)
+            self.model.setNumberOfIterations(num_iters)
 
         self.elapsed_time = -time()
+        self.solution = Solution(self.model)
         self.solution.setSolution(self.solve(
-            self.solution.getTimeStep(),
-            self.solution.getSpatialStep(),
-            self.solution.getApproximationOrder(),
-            self.solution.getNumberOfIterations(),
-            self.solution.getPumping(),
-            self.solution.getCoefficients(),
-            self.solution.getInitialSolution()))
+            self.model.getTimeStep(),
+            self.model.getSpatialStep(),
+            self.model.getApproximationOrder(),
+            self.model.getNumberOfIterations(),
+            self.model.getPumping(),
+            self.model.getCoefficients(),
+            self.model.getInitialSolution()))
         self.elapsed_time += time()
         self.solution.setElapsedTime(self.elapsed_time)
 
@@ -41,10 +44,10 @@ class AbstractSolver(object):
 
     def chemicalPotential(self, *args, **kwargs):
         return self.chemicalPotentialRoutine(
-            self.solution.getSpatialStep(),
-            self.solution.getPumping(),
-            self.solution.getCoefficients(),
-            self.solution.getSolution())
+            self.model.getSpatialStep(),
+            self.model.getPumping(),
+            self.model.getCoefficients(),
+            self.model.getSolution())
 
     def chemicalPotentialRoutine(self, *args, **kwargs):
         """This method should be override in child classses that specify chemical potencial calculation routine.
@@ -56,8 +59,8 @@ class Solver1D(AbstractSolver):
     """One dimensional solver that call native Fortran routine that solves NLS equation in axial symmentry in 2D.
     """
 
-    def __init__(self, solution):
-        super(Solver1D, self).__init__(solution)
+    def __init__(self, model):
+        super(Solver1D, self).__init__(model)
 
     def solve(self, *args, **kwargs):
         return nls.solve_nls(*args, **kwargs)
@@ -70,9 +73,8 @@ class Solver2D(AbstractSolver):
     """One dimensional solver that call native Fortran routine that solves NLS equation on a squared grid.
     """
 
-
-    def __init__(self, solution):
-        super(Solver2D, self).__init__(solution)
+    def __init__(self, model):
+        super(Solver2D, self).__init__(model)
 
     def solve(self, *args, **kwargs):
         return nls.solve_nls_2d(*args, **kwargs)
