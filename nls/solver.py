@@ -42,12 +42,12 @@ class AbstractSolver(object):
         """
         raise Exception('AbstractSolver: native solver routine is not passed!')
 
-    def chemicalPotential(self, *args, **kwargs):
+    def chemicalPotential(self, solution, *args, **kwargs):
         return self.chemicalPotentialRoutine(
             self.model.getSpatialStep(),
             self.model.getPumping(),
             self.model.getCoefficients(),
-            self.model.getSolution())
+            solution)
 
     def chemicalPotentialRoutine(self, *args, **kwargs):
         """This method should be override in child classses that specify chemical potencial calculation routine.
@@ -79,5 +79,5 @@ class Solver2D(AbstractSolver):
     def solve(self, *args, **kwargs):
         return nls.solve_nls_2d(*args, **kwargs)
 
-    def chemicalPotentialRoutine(*args, **kwargs):
+    def chemicalPotentialRoutine(self, *args, **kwargs):
         return nls.chemical_potential_2d(*args, **kwargs)

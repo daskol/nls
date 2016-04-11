@@ -10,7 +10,7 @@ from time import time
 from types import FunctionType
 from datetime import datetime
 
-from numpy import array, exp, sqrt, arange, ones, zeros, meshgrid, mgrid, linspace, angle, gradient
+from numpy import array, exp, sqrt, arange, ones, zeros, meshgrid, mgrid, pi, linspace, angle, gradient
 from scipy.integrate import simps
 from scipy.io import loadmat, savemat
 
@@ -66,7 +66,7 @@ class Problem(object):
 
         if kwargs.get('model') in ('1d', 'default', str(Model1D)):
             return self.fabricateModel1D(*args, **kwargs)
-        elif kwargs.get('model') in ('2d', str(Model1D)):
+        elif kwargs.get('model') in ('2d', str(Model2D)):
             return self.fabricateModel2D(*args, **kwargs)
         else:
             raise Exception('Unknown model passed!')
@@ -193,10 +193,13 @@ class AbstractModel(object):
 
         return scales[scale] if scale in scales else None
 
-    def getChemicalPotential(self):
+    def getChemicalPotential(self, solution):
         """Call solver in order to calculate chemical potential.
         """
-        self.mu = self.solver.chemicalPotential()
+        if isinstance(solution, Solution):
+            solution = solution.getSolution()
+
+        self.mu = self.solver.chemicalPotential(solution)
         return self.mu
 
     def getCoefficients(self):
@@ -204,9 +207,6 @@ class AbstractModel(object):
 
     def getInitialSolution(self):
         return self.init_sol
-
-    def getModel(self):
-        return self.model
 
     def getNumberOfIterations(self):
         return self.num_iters
@@ -298,6 +298,8 @@ class AbstractModel(object):
         self.num_nodes = matfile['num_nodes'][0, 0]
         self.num_iters = matfile['num_iters'][0, 0]
         self.pumping = GridPumping(matfile['pumping'])
+        self.dx = matfile['spatial_step'][0, 0]
+        self.dt = matfile['time_step'][0, 0]
 
         types = matfile['originals'].dtype
         values = matfile['originals']
@@ -345,8 +347,37 @@ class Solution(object):
         self.solution = solution
         self.verbose = verbose
 
+    def getDampingIntegral(self):
+        """Calculate integral of damping terms of hamiltonian using rectangular method.
+        """
+        reservoir = self.getReservoir()
+        density = self.getDensity()
+        length = self.model.getSpatialStep()
+
+        if self.solution.ndim == 1:
+            nodes = self.model.getNumberOfNodes()
+            radius = linspace(0, nodes * self.model.getSpatialStep(), nodes)
+            integral = 2 * pi * sum((reservoir - 1.0) * density * radius * length)
+        elif self.solution.ndim == 2:
+            area = length ** 2
+            integral = sum(sum((reservoir - 1.0) * density * area))
+
+        return integral
+
+    def getDensity(self):
+        return (self.solution.conj() * self.solution).real
+
     def getElapsedTime(self):
         return self.elapsed_time
+
+    def getModel(self):
+        return self.model
+
+    def getReservoir(self):
+        p = self.model.getPumping()  # pumping profile
+        u = self.getDensity()  # density profile
+        n = self.model.coeffs[11] *  p / (self.model.coeffs[12] + self.model.coeffs[13] * u)
+        return n
 
     def getSolution(self):
         return self.solution

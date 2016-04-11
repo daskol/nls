@@ -925,17 +925,32 @@ contains
         real(sp), intent(in) :: dx
         real(sp), intent(in), dimension(n) :: pumping
         real(sp), intent(in), dimension(23) :: coeffs
-        real(sp), intent(out) :: mu  ! chemical potential
+        complex(sp), intent(out) :: mu  ! chemical potential
         complex(sp), intent(in), dimension(n) :: u0
 
         integer, parameter :: order = 5, klu = (order - 1) / 2
+        integer :: i
+        real(sp), parameter :: factor = 1.001
         real(sp), dimension(order, n) :: op
-        complex(sp), dimension(n) :: u
+        real(sp), dimension(n) :: r
+        complex(sp), dimension(n) :: u1, u2
+        complex(sp) :: N1, N2, E1, E2
 
         call make_laplacian(n, order, dx, op)
-        call hamiltonian(pumping, coeffs, u0, u, op, klu, n)
+        call hamiltonian(pumping, coeffs,          u0, u1, op, klu, n)
+        call hamiltonian(pumping, coeffs, factor * u0, u2, op, klu, n)
 
-        mu = -real(dot_product(u0, u) / dot_product(u, u))
+        do i = 1, n
+            r(i) = i * dx
+        end do
+
+        N1 = dot_product(         u0,          u0 * r) * dx
+        N2 = dot_product(factor * u0, factor * u0 * r) * dx
+
+        E1 = (0.0, 1.0) * dot_product(         u0, u1 * r) * dx
+        E2 = (0.0, 1.0) * dot_product(factor * u0, u2 * r) * dx
+
+        mu = (E2 - E1) / (N2 - N1)
     end subroutine chemical_potential_1d
 
     subroutine chemical_potential_2d(dx, n, pumping, coeffs, u0, mu)
@@ -948,14 +963,22 @@ contains
 
         integer, parameter :: order = 5, klu = (order - 1) / 2
         integer, dimension(order) :: orders
+        real(sp), parameter :: factor = 1.001
         real(sp), dimension(2 * order - 1, n) :: blocks
-        complex(sp), dimension(n, n) :: u
+        complex(sp), dimension(n, n) :: u1, u2
+        complex(sp) :: N1, N2, E1, E2
 
         call make_laplacian_2d(n, order, dx, blocks, orders)
-        call hamiltonian_2d(pumping, coeffs, u0, u, blocks, orders, order, n)
+        call hamiltonian_2d(pumping, coeffs,          u0, u1, blocks, orders, order, n)
+        call hamiltonian_2d(pumping, coeffs, factor * u0, u2, blocks, orders, order, n)
 
-        mu = -real(dot_product(reshape(u0, (/ n * n /)), reshape(u, (/ n * n /))) / &
-                 dot_product(reshape(u, (/ n * n /)), reshape(u, (/ n * n /))))
+        N1 = dot_product(reshape(         u0, (/ n * n /)), reshape(         u0, (/ n * n /))) * dx ** 2
+        N2 = dot_product(reshape(factor * u0, (/ n * n /)), reshape(factor * u0, (/ n * n /))) * dx ** 2
+
+        E1 = (0.0, 1.0) * dot_product(reshape(         u0, (/ n * n /)), reshape(u1, (/ n * n /))) * dx ** 2
+        E2 = (0.0, 1.0) * dot_product(reshape(factor * u0, (/ n * n /)), reshape(u2, (/ n * n /))) * dx ** 2
+
+        mu = (E2 - E1) / (N2 - N1)
     end subroutine chemical_potential_2d    
 
 end module nls
