@@ -7,22 +7,17 @@ from __future__ import print_function
 from argparse import ArgumentParser
 from sys import path
 
-try:
-    import seaborn as sns
-except ImportError:
-    pass
-
 # Extend path variable in order to import fortran routines
 NLS_MODULE_PATH = '../'
 
 if NLS_MODULE_PATH not in path:
     path.append(NLS_MODULE_PATH)
 
-from nls.model import Solution
+from nls.model import Problem, Solution
 
 
 def main():
-    parser = ArgumentParser(prog='NLSe Soliution Visualizer', description='Visualize saved solutions with nls package.')
+    parser = ArgumentParser(prog='NLSe Solution Visualizer', description='Visualize saved solutions with nls package.')
     parser.add_argument('solution_path', metavar='solution', type=unicode, help='.mat file that contains solution')
     parser.add_argument('--1d', '-1', action='store_true', help='Force loading solution as one dimensional')
     parser.add_argument('--2d', '-2', action='store_true', help='Force loading solution as two dimensional')
@@ -35,7 +30,8 @@ def main():
 
     args = parser.parse_args()
 
-    solution = Solution.load(args.solution_path)
+    model = Problem().model(filename=args.solution_path)
+    solution = Solution(model).restore(args.solution_path)
     solution.visualize(
         filename = args.filename,
         contour = args.contour,

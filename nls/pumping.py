@@ -207,7 +207,6 @@ class RectangularPumping1D(AbstractPumping):
     def __init__(self, power=10.0, x0=0.0, width=1.0):
         super(RectangularPumping1D, self).__init__(power)
 
-        print(power)
         self.x0 = x0
         self.width = width
         self.power = power

@@ -44,6 +44,9 @@ class Problem(object):
             !original_params - default value `{}`;
             !dimless_params - default value `{}`;
         """
+        if 'filename' in kwargs:
+            return self.modelFromFile(kwargs['filename'])
+
         if 'params' in kwargs:
             params = kwargs.pop('params')
 
@@ -61,14 +64,26 @@ class Problem(object):
         if 'gamma_R' not in kwargs['original_params']:
             kwargs['original_params']['gamma_R'] = 0.242057488654
 
-        if 'model' in kwargs and kwargs['model'] in ('1d', 'default'):
+        if kwargs.get('model') in ('1d', 'default', str(Model1D)):
             return self.fabricateModel1D(*args, **kwargs)
-        elif 'model' in kwargs and kwargs['model'] == '2d':
+        elif kwargs.get('model') in ('2d', str(Model1D)):
             return self.fabricateModel2D(*args, **kwargs)
         else:
             raise Exception('Unknown model passed!')
 
-    def fabricateModel1D(*args, **kwargs):
+    def modelFromFile(self, filename):
+        def modelFromFileLikeObject(filename):
+            mat = loadmat(filename)
+            if 'model' in mat:
+                return self.model(model=mat['model'][0]).restore(filename)
+
+        if isinstance(filename, file):
+            return modelFromFileLikeObject(filename)
+        else:
+            with open(filename) as f:
+                return modelFromFileLikeObject(filename)
+
+    def fabricateModel1D(self, *args, **kwargs):
         kwargs['dx'] = 1.0e-1 if 'dx' not in kwargs else kwargs['dx']
         kwargs['dt'] = 1.0e-3 if 'dt' not in kwargs else kwargs['dt']
         kwargs['t0'] = 0.0e+0 if 't0' not in kwargs else kwargs['t0']
@@ -108,17 +123,6 @@ class AbstractModel(object):
     """
 
     def __init__(self, *args, **kwargs):
-        if kwargs.get('verbose'):
-            pprint({
-                'dt': kwargs['dt'],
-                'dx': kwargs['dx'],
-                'order': kwargs['order'],
-                'num_nodes': kwargs['num_nodes'],
-                'num_iters': kwargs['num_iters'],
-                'pumping': kwargs['pumping'],
-                'originals': kwargs['original_params'],
-                })
-
         self.dt = kwargs['dt']
         self.dx = kwargs['dx']
         self.order = kwargs['order']
@@ -155,13 +159,17 @@ class AbstractModel(object):
         self.coeffs[13] = self.originals['R'] * phi0 ** 2 / self.originals['gamma_R']  # interaction term
         self.coeffs[14] = 0.0  # diffusive term
 
-        if self.verbose:
-            print(self.coeffs)
-
-    def solve(self, num_iters=None):
-        """Call solver that is aggregated certain child objects.
-        """
-        return self.solver(num_iters)
+    def __repr__(self):
+        from pprint import pformat
+        return pformat({
+            'dt': self.dt,
+            'dx': self.dx,
+            'order': self.order,
+            'num_nodes': self.num_nodes,
+            'num_iters': self.num_iters,
+            'pumping': self.pumping,
+            'originals': self.originals,
+            }) + '\n' + str(self.coeffs)
 
     def getApproximationOrder(self):
         return self.order
@@ -232,16 +240,46 @@ class AbstractModel(object):
     def getTimeStep(self):
         return self.dt
 
-    def store(self, filename=None, label='', desc='', date=None):
+    def setNumberOfIterations(self, num_iters):
+        self.num_iters = num_iters
+
+    def setPumping(self, pumping):
+        self.pumping = pumping
+
+    def setInitialSolution(self, solution):
+        self.init_sol = solution
+
+    def solve(self, num_iters=None):
+        """Call solver that is aggregated certain child objects.
+        """
+        return self.solver(num_iters)
+
+    def store(self, filename=None, label=None, desc=None, date=None):
         """Store object to mat-file. TODO: determine format specification
         """
         date = date if date else datetime.now()
-        filename = filename if filename else date.isoformat() + '.mat'
+        date = date.isoformat()
+        filename = filename if filename else date + '.mat'
 
-        matfile = {}
-        matfile['desc'] = desc
-        matfile['label'] = label
-        matfile['originals'] = {}
+        matfile = {
+            'model': str(type(self)),
+            'date': date,
+            'dim': len(self.init_sol.shape),
+            'dimlesses': self.coeffs,
+            'init_solution': self.init_sol,
+            'num_iters': self.num_iters,
+            'num_nodes': self.num_nodes,
+            'order': self.order,
+            'originals': self.originals,
+            'pumping': self.getPumping(),
+            'spatial_step': self.dx,
+            'time_step': self.dt,
+        }
+
+        if desc:
+            matfile['desc'] = desc
+        if label:
+            matfile['label'] = label
 
         savemat(filename, matfile)
 
@@ -249,10 +287,27 @@ class AbstractModel(object):
         """Restore object from mat-file. TODO: determine format specification
         """
         matfile = loadmat(filename)
+        matfile['originals'] = matfile['originals'][0, 0]
 
-        self.desc = str(matfile['desc'][0]) if matfile['desc'].size else ''
-        self.label = str(matfile['label'][0]) if matfile['label'].size else ''
-        self.originals = {}
+        if matfile['dim'] == 1:
+            matfile['init_solution'] = matfile['init_solution'][0, :]
+            matfile['pumping'] = matfile['pumping'][0, :]
+
+        self.coeffs = matfile['dimlesses'][0, :]
+        self.init_sol = matfile['init_solution']
+        self.num_nodes = matfile['num_nodes'][0, 0]
+        self.num_iters = matfile['num_iters'][0, 0]
+        self.pumping = GridPumping(matfile['pumping'])
+
+        types = matfile['originals'].dtype
+        values = matfile['originals']
+
+        self.originals = dict(zip(types.names, (value[0, 0] for value in values)))
+
+        if 'desc' in matfile:
+            self.desc = str(matfile['desc'][0])
+        if 'label' in matfile:
+            self.label = str(matfile['label'][0])
 
         return self
 
@@ -301,23 +356,6 @@ class Solution(object):
 
     def setSolution(self, solution):
         self.solution = solution
-
-    @staticmethod
-    def load(filename):
-        print('Default <Solution> object creation...')
-        self = Problem().model().solution
-        print('Restoring <Solution> object...')
-        self.restore(filename)
-        return self
-
-    def setNumberOfIterations(self, num_iters):
-        self.num_iters = num_iters
-
-    def setPumping(self, pumping):
-        self.pumping = pumping
-
-    def setInitialSolution(self, solution):
-        self.init_sol = solution
 
     def visualize(self, *args, **kwargs):
         if len(self.model.init_sol.shape) == 1:
@@ -428,27 +466,26 @@ class Solution(object):
     def show(self):
         show()
 
-    def store(self, filename=None, label='', desc='', date=None):
+    def store(self, filename=None, label=None, desc=None, date=None):
         """Store object to mat-file. TODO: determine format specification
         """
         date = datetime.now() if date is None else date
         filename = filename if filename else date.isoformat() + '.mat'
 
-        matfile = {}
-        matfile['desc'] = desc
-        matfile['dim'] = len(self.solution.shape)
-        matfile['dimlesses'] = self.coeffs
-        matfile['elapsed_time'] = self.elapsed_time
-        matfile['init_solution'] = self.init_sol
-        matfile['label'] = label
-        matfile['num_nodes'] = self.num_nodes
-        matfile['num_iters'] = self.num_iters
-        matfile['originals'] = self.originals
-        matfile['pumping'] = self.getPumping()
-        matfile['solution'] = self.solution
-        matfile['version'] = version()
+        def storeWithFileLikeObject(file_like):
+            content = {
+                'elapsed_time': self.elapsed_time,
+                'solution': self.solution,
+                'version': version(),
+            }
+            self.model.store(file_like, label, desc, date)
+            savemat(file_like, content, appendmat=True)
 
-        savemat(filename, matfile)
+        if isinstance(filename, file):
+            storeWithFileLikeObject(filename)
+        else:
+            with open(filename, 'wb') as f:
+                storeWithFileLikeObject(f)
 
     def restore(self, filename):
         """Restore object from mat-file. TODO: determine format specification
@@ -456,19 +493,9 @@ class Solution(object):
         matfile = loadmat(filename)
 
         if matfile['dim'] == 1:
-            matfile['init_solution'] = matfile['init_solution'][0, :]
-            matfile['pumping'] = matfile['pumping'][0, :]
             matfile['solution'] = matfile['solution'][0, :]
 
-        self.desc = str(matfile['desc'][0]) if matfile['desc'].size else ''
-        self.coeffs = matfile['dimlesses'].T
         self.elapsed_time = matfile['elapsed_time'][0, 0]
-        self.init_sol = matfile['init_solution']
-        self.label = str(matfile['label'][0]) if matfile['label'].size else ''
-        self.num_nodes = matfile['num_nodes'][0, 0]
-        self.num_iters = matfile['num_iters'][0, 0]
-        self.originals = {}
-        self.pumping = GridPumping(matfile['pumping'])
         self.solution = matfile['solution']
 
         return self
