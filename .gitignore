@@ -31,9 +31,11 @@ PKG-INFO
 /env/
 # Python egg metadata, regenerated from source files by setuptools.
 /*.egg-info
-# Ignore log, backup, and json files
+# Ignore log, backup, db, dat, and json files
 *.log
 *.bak
+*.db
+*.dat
 *.json
 # Ignore pictures
 *.png
