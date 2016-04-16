@@ -215,7 +215,7 @@ class AbstractModel(object):
         return self.num_nodes
 
     def getParticleNumber(self, method='simps'):
-        return simps((self.solution.conj() * self.solution).real, dx=self.dx)
+        return simps((self.solution.conj() * self.solution).real, dx=self.dx) # TODO: polar coords
 
     def getPumping(self):
         if len(self.init_sol.shape) == 1:
@@ -258,7 +258,7 @@ class AbstractModel(object):
         """Store object to mat-file. TODO: determine format specification
         """
         date = date if date else datetime.now()
-        date = date.isoformat()
+        date = date.replace(microsecond=0).isoformat()
         filename = filename if filename else date + '.mat'
 
         matfile = {
@@ -501,7 +501,7 @@ class Solution(object):
         """Store object to mat-file. TODO: determine format specification
         """
         date = datetime.now() if date is None else date
-        filename = filename if filename else date.isoformat() + '.mat'
+        filename = filename if filename else date.replace(microsecond=0).isoformat() + '.mat'
 
         def storeWithFileLikeObject(file_like):
             content = {
