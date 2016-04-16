@@ -1,3 +1,8 @@
+[![Build Status](https://img.shields.io/travis/nls/nls/master.svg?style=flat-square)](https://travis-ci.org/nls/nls)
+[![Coverage Status](https://img.shields.io/coveralls/nls/nls/master.svg?style=flat-square)](https://coveralls.io/r/nls/nls)
+[![PyPi](https://img.shields.io/pypi/pyversions/nls.svg?style=flat-square)](https://pypi.python.org/pypi/nls/)
+[![Downloads](https://img.shields.io/pypi/dm/nls.svg?style=flat-square)](https://pypi.python.org/pypi/nls/)
+
 # Non-linear Schrodinger Equation Solver(NLS)
 
 ## Description
@@ -37,7 +42,7 @@ NLS is scientific package that provides ability to solve effeffectively non-line
 
 ```python
     from nls.native import nls
-    print(nls.__doc__)
+    print(nls.version())
 ```
 
 4. Or use python to import python wrap in a way
@@ -45,10 +50,10 @@ NLS is scientific package that provides ability to solve effeffectively non-line
 ```python
     from nls import Problem
     model = Problem().model()
+    model.report()
     model.solve()
     model.visualize()
     model.show()
-    model.report()
 ```
 
 ## Testing
