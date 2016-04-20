@@ -15,7 +15,7 @@ app.config.update(dict(
     DEBUG=True,
     SECRET_KEY='development key',
     USERNAME='admin',
-    PASSWORD='default'
+    PASSWORD='default',
 ))
 app.config.from_envvar('SCHEDULR_SETTINGS', silent=True)
 
@@ -132,7 +132,7 @@ def jobs():
         return post_jobs()
 
 def get_jobs():
-    result = db_get().execute('SELECT * FROM jobs;')
+    result = db_get().execute('SELECT * FROM jobs WHERE is_active = 1 AND is_done = 0;')
     rows = [dict(zip(row.keys(), row)) for row in result.fetchall()]
     return jsonify(jobs=rows)
 
@@ -153,4 +153,4 @@ def workers():
 
 
 if __name__ == '__main__':
-    app.run()
+    app.run(host='0.0.0.0', port=5000)
