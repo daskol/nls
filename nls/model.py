@@ -139,8 +139,8 @@ class AbstractModel(object):
         m_e = 9.1e-31
         m_0 = 1.0e-5 * m_e
 
-        phi0 = sqrt(self.originals['gamma'] / (2.0 * self.originals['g']))
-        t0 = phi0
+        t0 = 2.0 / self.originals['gamma']
+        phi0 = sqrt(1.0 / (t0 * self.originals['g']))
         x0 = sqrt(hbar * t0 / (2 * m_0))
         n0 = 2.0 / (self.originals['R'] * t0)
 
@@ -179,16 +179,18 @@ class AbstractModel(object):
         m_e = 9.1e-31
         m_0 = 1.0e-5 * m_e
 
-        phi0 = sqrt(self.originals['gamma'] / (2.0 * self.originals['g']))
-        t0 = phi0
+        t0 = 2.0 / self.originals['gamma']
+        phi0 = sqrt(1.0 / (t0 * self.originals['g']))
         x0 = sqrt(hbar * t0 / (2 * m_0))
         n0 = 2.0 / (self.originals['R'] * t0)
+        mu0 = phi0 / t0
 
         scales = {
             'x': x0,
             't': t0,
             'n': n0,
             'phi': phi0,
+            'mu': mu0,
         }
 
         return scales[scale] if scale in scales else None
