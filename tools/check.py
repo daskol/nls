@@ -23,27 +23,34 @@ TOLERANCE = 1.0e-1
 
 
 def timestamp():
-    return datetime.now().isoformat()
+    return datetime.now().replace(microsecond=0).isoformat()
 
-def check_convergence(solution, num_steps=100, num_iters=10, tolerance=TOLERANCE):
+def check_convergence(solution, num_steps=20, num_iters=5, tolerance=TOLERANCE):
     model = deepcopy(solution.getModel())
-    profile = solution.getSolution()
+    profile = solution
     eigenvalues = zeros(num_steps, dtype=complex)
+    integrals = zeros(num_steps, dtype=float)
 
     for i in xrange(num_steps):
-        model.setInitialSolution(profile)
-        profile = model.solve(num_iters).getSolution()
-        eigenvalues[i] = model.getChemicalPotential(profile)
+        model.setInitialSolution(profile.getSolution())
+        profile = model.solve(num_iters)
+        eigenvalues[i] = model.getChemicalPotential(profile.getSolution())
+        integrals[i] = profile.getDampingIntegral()
 
     fig = figure()
-    ax = fig.add_subplot(111)
+    ax = fig.add_subplot(1, 2, 1)
     ax.plot(eigenvalues.real, label='real: {0:5.2f}'.format(eigenvalues.real[-1]))
     ax.plot(eigenvalues.imag, label='imag: {0:5.2f}'.format(eigenvalues.imag[-1]))
     ax.plot(abs(eigenvalues), label='abs: {0:5.2f}'.format(abs(eigenvalues[-1])))
     ax.legend(loc='best')
-    ax.set_xlabel(str(num_iters) + '$\cdot$ iters ')
+    ax.set_xlabel(str(num_iters) + '$\cdot$iters ')
     ax.set_ylabel('chemical potential, $\mu$')
     ax.set_title('Chemical potential on iterations(precalculations: {0} iters).'.format(solution.getModel().getNumberOfIterations()))
+    ax = fig.add_subplot(1, 2, 2)
+    ax.plot(integrals, label='value')
+    ax.legend(loc='best')
+    ax.set_xlabel(str(num_iters) + '$\cdot$iters ')
+    ax.set_ylabel('integral value, I')
     show()
 
     value = mean(eigenvalues.real)
