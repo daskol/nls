@@ -55,6 +55,7 @@ def setup_package():
          description = DOCLINES[0],
          long_description = '\n'.join(DOCLINES[2:]),
          url='https://github.com/daskol/nls',
+         download_url='https://github.com/daskol/nls/tarball/v' + VERSION,
          author='Daniel Bershatsky',
          author_email='daniel.bershatsky@skolkovotech.ru',
          maintainer='Daniel Bershatsky',
