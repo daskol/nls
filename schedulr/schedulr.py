@@ -4,6 +4,7 @@
 #   See LICENSE for details
 
 from __future__ import print_function, absolute_import
+from operator import itemgetter
 from os import path
 from sqlite3 import connect, Row
 from flask import Flask, request, session, g, redirect, url_for, abort, render_template, flash, jsonify
@@ -133,12 +134,12 @@ def jobs():
 
 def get_jobs():
     result = db_get().execute('SELECT * FROM jobs WHERE is_active = 1 AND is_done = 0;')
+    columns = map(itemgetter(0), result.description)
     rows = [dict(zip(row.keys(), row)) for row in result.fetchall()]
-    return jsonify(jobs=rows)
+    return jsonify(columns=columns, jobs=rows)
 
 def post_jobs():
     json = request.get_json(force=True)
-
     db = db_get()
     rv = db.executemany('INSERT INTO jobs VALUES(NULL, NULL, ?, 0, 0, NULL, NULL);', zip(json['jobs']))
     db.commit()
@@ -147,9 +148,10 @@ def post_jobs():
 
 @app.route('/api/workers', methods=['GET'])
 def workers():
-    result = db_get().execute('SELECT * FROM workers;')
+    result = db_get().execute('SELECT * FROM workers WHERE is_active = 1;')
+    columns = map(itemgetter(0), result.description)
     rows = [dict(zip(row.keys(), row)) for row in result.fetchall()]
-    return jsonify(workers=rows)
+    return jsonify(columns=columns, workers=rows)
 
 
 if __name__ == '__main__':

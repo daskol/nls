@@ -8,45 +8,61 @@ function cleanTable (table) {
     }
 }
 
+function makeTableHeader (parent, columns) {
+    var row = document.createElement('tr');
+
+    for (var column of columns) {
+        var tag = document.createElement('th')
+        tag.textContent = column;
+        row.appendChild(tag)
+    }
+
+    parent.appendChild(row)
+}
+
+function makeTableBody (parent, columns, rows) {
+    for (var row of rows) {
+        var tag = document.createElement('tr');
+
+        for (var column of columns) {
+            var col = document.createElement('td');
+
+            if (column == "description") {
+                col.textContent = JSON.stringify(JSON.parse(row[column]), null, 2);
+            } else {
+                col.textContent = row[column];
+            }
+
+            tag.appendChild(col);
+        }
+
+        parent.appendChild(tag);
+    }
+}
+
+function buildTable (element, header, rows) {
+    cleanTable(element);
+    makeTableHeader(element, header);
+    makeTableBody(element, header, rows);
+}
+
 function updateActiveJobs () {
     $.get('/api/jobs', function (response) {
         var active_jobs = document.getElementById('active-jobs');
+        var columns = response['columns'];
         var jobs = response['jobs'];
 
-        cleanTable(active_jobs);
-
-        for (var job of jobs) {
-            var row = document.createElement('tr');
-
-            for (var attr in job) {
-                var col = document.createElement('td');
-                col.textContent = job[attr];
-                row.appendChild(col);
-            }
-
-            active_jobs.appendChild(row);
-        }
+        buildTable(active_jobs, columns, jobs);
     });
 }
 
 function updateActiveWorkers () {
     $.get('/api/workers', function (response) {
         var active_workers = document.getElementById('active-workers');
+        var columns = response['columns'];
         var workers = response['workers'];
 
-        cleanTable(active_workers);
-
-        for (var worker of workers) {
-            var row = document.createElement('tr');
-
-            for (var attr in worker) {
-                var col = document.createElement('td');
-                col.textContent = worker[attr];
-                row.appendChild(col);
-            }
-
-            active_workers.appendChild(row);
-        }
+        buildTable(active_workers, columns, workers);
     });
 }
 
