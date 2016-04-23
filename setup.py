@@ -43,7 +43,7 @@ PLATFORMS = [
 ]
 
 MAJOR = 0
-MINOR = 1
+MINOR = 2
 PATCH = 0
 
 VERSION = '{0:d}.{1:d}.{2:d}'.format(MAJOR, MINOR, PATCH)
@@ -57,6 +57,8 @@ def setup_package():
          url='https://github.com/daskol/nls',
          author='Daniel Bershatsky',
          author_email='daniel.bershatsky@skolkovotech.ru',
+         maintainer='Daniel Bershatsky',
+         maintainer_email='daniel.bershatsky@skolkovotech.ru',
          license='MIT',
          platforms=PLATFORMS,
          classifiers=[line for line in CLASSIFIERS.split('\n') if line],
@@ -74,13 +76,10 @@ def setup_package():
                 ],
             ),
          ],
-         install_requires=[
-            'numpy',
-            'scipy',
-            'matplotlib',
+         scripts=[
+            'tools/check.py',
+            'tools/visualize.py',
          ],
-         include_package_data=True,
-         zip_safe=False
     )
 
 
