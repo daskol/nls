@@ -1,4 +1,4 @@
-!   nls.f95
+!   nls.f90
 !   Computational core of the project. Define routines that solve Non-Linear Schrodinger equation.
 !   (c) Daniel Bershatsky, 2015-2016
 !   See LISENCE for details.
@@ -32,7 +32,7 @@ contains
         integer, intent(out) :: major, minor, patch
 
         major = 0
-        minor = 1
+        minor = 2
         patch = 0
     end subroutine version
 

@@ -64,7 +64,7 @@ def setup_package():
          platforms=PLATFORMS,
          classifiers=[line for line in CLASSIFIERS.split('\n') if line],
          packages=[
-            'nls'
+            'nls',
          ],
          ext_modules=[
             FortranExtension(
