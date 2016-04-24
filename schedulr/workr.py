@@ -5,6 +5,8 @@
 
 from __future__ import absolute_import, print_function
 from argparse import ArgumentParser
+from os import mkdir
+from os.path import exists, join
 from sys import path
 from requests import Session
 from json import loads
@@ -13,6 +15,8 @@ path.append('..')
 
 from nls.model import Problem
 from nls.pumping import GaussianPumping1D, GaussianPumping2D
+
+import logging
 
 
 PORT = 5000
@@ -36,7 +40,7 @@ def post_job(session, worker_id, job_id):
     response = session.post(URL.format('job'), json=dict(worker_id=worker_id, job_id=job_id))
     return response.status_code == 204
 
-def solve_problem(desc):
+def solve_problem(job_id, desc, output_dir='output'):
     desc = loads(desc.encode('utf8'))
 
     model = Problem().model(
@@ -59,13 +63,19 @@ def solve_problem(desc):
         dimless_params = {
         })
 
+    if not exists(output_dir):
+        mkdir(output_dir)
+
     solution = model.solve()
     solution.report()
-    solution.store()
+    solution.store(join(output_dir, 'solution.mat'))
 
     return True
 
 def main():
+    # Logging settigns
+    logging.basicConfig(format='%(asctime)s : %(levelname)s : %(message)s', level=logging.INFO)
+
     # Initialization and configuration
     parser = ArgumentParser(prog='workr', description='Workr peeks job from Schdulr and runs it.')
     parser.add_argument('--host', '-H', default=HOST, help='set host name')
@@ -83,7 +93,7 @@ def main():
     if not worker_id:
         exit('Could not register!')
 
-    print('Workr:', worker_id)
+    logging.info('Workr:', worker_id)
 
     while True:
         job = get_job(session, worker_id);
@@ -94,17 +104,18 @@ def main():
         job_id = job['job_id']
         description = job['description']
 
-        print('Job:', job_id, description)
+        logging.info('Job:', job_id, description)
 
-        solved = solve_problem(description)
+        solved = solve_problem(job_id, description)
 
         if not post_job(session, worker_id, job_id):
+            logging.error('Could not post the job!', exc_info=False)
             break
 
     if not unregister(session, worker_id):
         exit('Could not unregister!')
 
-    print('Done')
+    logging.info('Done')
 
 
 if __name__ == '__main__':
