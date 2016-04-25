@@ -112,7 +112,7 @@ class Problem(object):
         kwargs['num_iters'] = 1000 if 'num_iters' not in kwargs else kwargs['num_iters']
 
         if type(kwargs['u0']) in (int, float, complex):
-            kwargs['u0'] = kwargs['u0'] * ones((kwargs['num_nodes'], kwargs['num_nodes'])) 
+            kwargs['u0'] = kwargs['u0'] * ones((kwargs['num_nodes'], kwargs['num_nodes']))
 
         if kwargs.get('reservoir_eval') == True:
             return ModelCoupledNls2D(**kwargs)
@@ -347,7 +347,7 @@ class ModelCoupledNls2D(Model2D):
     def __init__(self, *args, **kwargs):
         super(ModelCoupledNls2D, self).__init__(*args, **kwargs)
 
-        self.solver = SolverCoupledNls2D()
+        self.solver = SolverCoupledNls2D(self)
 
 
 class Solution(object):
