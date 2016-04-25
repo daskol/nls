@@ -114,7 +114,10 @@ class Problem(object):
         if type(kwargs['u0']) in (int, float, complex):
             kwargs['u0'] = kwargs['u0'] * ones((kwargs['num_nodes'], kwargs['num_nodes'])) 
 
-        return Model2D(**kwargs)
+        if kwargs.get('reservoir_eval') == True:
+            return ModelCoupledNls2D(**kwargs)
+        else:
+            return Model2D(**kwargs)
 
 
 class AbstractModel(object):
@@ -336,6 +339,17 @@ class Model2D(AbstractModel):
         self.solver = Solver2D(self)
 
 
+class ModelCoupledNls2D(Model2D):
+    """Model that is NLS equation with reservoir on two dimensional grid. Solver of the model supports time evolution
+    of reservoir density.
+    """
+
+    def __init__(self, *args, **kwargs):
+        super(ModelCoupledNls2D, self).__init__(*args, **kwargs)
+
+        self.solver = SolverCoupledNls2D()
+
+
 class Solution(object):
     """Object that represents solution of a given model. Also it contains all model parameters and has ability to store
     and to load solution.
@@ -386,6 +400,9 @@ class Solution(object):
 
     def setElapsedTime(self, seconds):
         self.elapsed_time = seconds
+
+    def setReservoir(self, reservoir):
+        self.reservoir = reservoir
 
     def setSolution(self, solution):
         self.solution = solution

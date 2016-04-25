@@ -18,9 +18,9 @@ module nls
     public :: make_laplacian_2d_o3, make_laplacian_2d_o5, make_laplacian_2d_o7, make_laplacian_2d
     public :: rbbmv_o3, rbbmv_o5, rbbmv_o7, rbbmv, rgbmv
     public :: revervoir, revervoir_2d
-    public :: hamiltonian, hamiltonian_2d
-    public :: runge_kutta, runge_kutta_2d
-    public :: solve_nls_1d, solve_nls_2d, solve_nls
+    public :: hamiltonian, hamiltonian_2d, infinit_gen_2d
+    public :: runge_kutta, runge_kutta_2d, runge_kutta_coupled_nls_2d
+    public :: solve_nls_1d, solve_nls_2d, solve_coupled_nls_2d
     public :: chemical_potential_1d, chemical_potential_2d
 
 contains
@@ -794,7 +794,7 @@ contains
     !   \verbatim
     !       Psi-function that solves NLS equation with reservoir.
     !   \endverbatim
-    subroutine solve_nls(dt, dx, n, order, iters, pumping, coeffs, u0, u)
+    subroutine solve_nls_1d(dt, dx, n, order, iters, pumping, coeffs, u0, u)
         implicit none
 
         integer, parameter :: sp = selected_real_kind(6, 37)
@@ -810,20 +810,6 @@ contains
 
         call make_laplacian(n, order, dx, op)
         call runge_kutta(dt, t0, u0, op, n, order, iters, u, pumping, coeffs)
-    end subroutine solve_nls
-
-    subroutine solve_nls_1d(dt, dx, n, order, iters, pumping, coeffs, u0, u)
-        implicit none
-
-        integer, parameter :: sp = selected_real_kind(6, 37)
-        real(sp), intent(in) :: dt, dx
-        integer, intent(in) :: n, order, iters
-        real(sp), intent(in), dimension(n) :: pumping
-        complex(sp), intent(in), dimension(n) :: u0
-        complex(sp), intent(out), dimension(n) :: u
-        real(sp), intent(in), dimension(23) :: coeffs
-
-        call solve_nls(dt, dx, n, order, iters, pumping, coeffs, u0, u)
     end subroutine solve_nls_1d
 
     subroutine revervoir_2d(pumping, coeffs, u_sqr, r, n)
@@ -917,6 +903,92 @@ contains
         call make_laplacian_2d(n, order, dx, blocks, orders)
         call runge_kutta_2d(dt, t0, u0, n, blocks, orders, order, iters, u, pumping, coeffs)
     end subroutine solve_nls_2d
+
+    subroutine infinit_gen_2d(pumping, coeffs, u0, u, v0, v, blocks, orders, order, n)
+        implicit none
+
+        integer, intent(in) :: n, order
+        integer, intent(in), dimension(order) :: orders
+        complex(sp), intent(in), dimension(n, n) :: u0
+        complex(sp), intent(out), dimension(n, n) :: u
+        real(sp), intent(in), dimension(n, n) :: v0
+        real(sp), intent(out), dimension(n, n) :: v
+        real(sp), intent(in), dimension(n, n) :: pumping
+        real(sp), intent(in), dimension(23) :: coeffs
+        real(sp), intent(in), dimension(n, 2 * order - 1) :: blocks
+
+        complex(sp), parameter :: i = (0.0, 1.0)
+        real(sp), parameter :: sign = 1.0
+        real(sp), dimension(n, n) :: u0_sqr
+        real(sp), dimension(n, n) :: u0_real, u0_imag, u_real, u_imag
+
+        u0_real = real(u0)
+        u0_imag = aimag(u0)
+        u0_sqr = real(conjg(u0) * u0)
+
+        u_real = (coeffs(3) * v0 - coeffs(4)) * u0_real + (coeffs(5) * u0_sqr + coeffs(6) * v0) * u0_imag
+        u_imag = (coeffs(3) * v0 - coeffs(4)) * u0_imag - (coeffs(5) * u0_sqr + coeffs(6) * v0) * u0_real
+
+        call rbbmv(u0_imag, u_real, -sign, blocks, orders, order, n)
+        call rbbmv(u0_real, u_imag, +sign, blocks, orders, order, n)
+
+        u = cmplx(u_real, u_imag, sp)
+        v = coeffs(12) * pumping  - (coeffs(13) + coeffs(14) * u0_sqr) * v0
+    end subroutine infinit_gen_2d
+
+    subroutine runge_kutta_coupled_nls_2d(dt, t0, u0, n, blocks, orders, order, iters, u, v, pumping, coeffs)
+        implicit none
+
+        integer, intent(in) :: n, order, iters
+        integer, intent(in), dimension(order) :: orders
+        real(sp), intent(in) :: dt, t0
+        real(sp), intent(in), dimension(23) :: coeffs
+        real(sp), intent(in), dimension(n, 2 * order - 1) :: blocks
+        real(sp), intent(in), dimension(n, n) :: pumping
+        complex(sp), intent(in), dimension(n, n) :: u0
+        complex(sp), intent(out), dimension(n, n) :: u
+        real(sp), intent(out), dimension(n, n) :: v
+
+        integer :: i
+        real(sp) :: t
+        complex(sp), dimension(n, n) :: k1, k2, k3, k4
+        real(sp), dimension(n, n) :: l1, l2, l3, l4  ! small L, not digit one
+
+        t = t0
+        u = u0
+
+        call revervoir_2d(pumping, coeffs, real(conjg(u) * u), v, n)
+
+        do i = 1, iters
+            call infinit_gen_2d(pumping, coeffs, u + 0. * dt / 2, k1, v + 0. * dt / 2, l1, blocks, orders, order, n)
+            call infinit_gen_2d(pumping, coeffs, u + k1 * dt / 2, k2, v + l1 * dt / 2, l2, blocks, orders, order, n)
+            call infinit_gen_2d(pumping, coeffs, u + k2 * dt / 2, k3, v + l2 * dt / 2, l3, blocks, orders, order, n)
+            call infinit_gen_2d(pumping, coeffs, u + k3 * dt / 1, k4, v + l3 * dt / 1, l4, blocks, orders, order, n)
+
+            u = u + (k1 + 2 * k2 + 2 * k3 + k4) * dt / 6
+            v = v + (l1 + 2 * l2 + 2 * l3 + l4) * dt / 6
+            t = t + dt
+        end do
+    end subroutine runge_kutta_coupled_nls_2d
+
+    subroutine solve_coupled_nls_2d(dt, dx, n, order, iters, pumping, coeffs, u0, u, v)
+        implicit none
+
+        integer, intent(in) :: n, order, iters
+        real(sp), intent(in) :: dt, dx
+        real(sp), intent(in), dimension(n, n) :: pumping
+        real(sp), intent(in), dimension(23) :: coeffs
+        complex(sp), intent(in), dimension(n, n) :: u0
+        complex(sp), intent(out), dimension(n, n) :: u
+        real(sp), intent(out), dimension(n, n) :: v  ! reservoir dencity
+
+        integer, dimension(order) :: orders
+        real(sp), parameter :: t0 = 0.0
+        real(sp), dimension(n, 2 * order - 1) :: blocks
+
+        call make_laplacian_2d(n, order, dx, blocks, orders)
+        call runge_kutta_coupled_nls_2d(dt, t0, u0, n, blocks, orders, order, iters, u, v, pumping, coeffs)
+    end subroutine solve_coupled_nls_2d
 
     subroutine chemical_potential_1d(dx, n, pumping, coeffs, u0, mu)
         implicit none

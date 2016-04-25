@@ -70,7 +70,7 @@ class Solver1D(AbstractSolver):
 
 
 class Solver2D(AbstractSolver):
-    """One dimensional solver that call native Fortran routine that solves NLS equation on a squared grid.
+    """Two dimensional solver that call native Fortran routine that solves NLS equation on a squared grid.
     """
 
     def __init__(self, model):
@@ -81,3 +81,36 @@ class Solver2D(AbstractSolver):
 
     def chemicalPotentialRoutine(self, *args, **kwargs):
         return nls.chemical_potential_2d(*args, **kwargs)
+
+
+class SolverCoupledNls2D(Solver2D):
+    """Two dimensional solver that call native Fortran routine that solves NLS equation on a squared grid. It iterates
+    on wave function as well as on reservoir density.
+    """
+
+    def __init__(self, model):
+        super(SolverCoupledNls2D, self).__init__(model)
+
+    def __call__(self, num_iters=None):
+        if num_iters:
+            self.model.setNumberOfIterations(num_iters)
+
+        self.elapsed_time = -time()
+        self.solution = Solution(self.model)
+        condensate, reservoir = self.solve(
+            self.model.getTimeStep(),
+            self.model.getSpatialStep(),
+            self.model.getApproximationOrder(),
+            self.model.getNumberOfIterations(),
+            self.model.getPumping(),
+            self.model.getCoefficients(),
+            self.model.getInitialSolution())
+        self.solution.setSolution(condensate)
+        self.solution.setReservoir(reservoir)
+        self.elapsed_time += time()
+        self.solution.setElapsedTime(self.elapsed_time)
+
+        return self.solution
+
+    def solve(self, *args, **kwargs):
+        return nls.solve_coupled_nls_2d(*args, **kwargs)
