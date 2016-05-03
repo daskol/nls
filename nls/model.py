@@ -110,11 +110,13 @@ class Problem(object):
         kwargs['pumping'] = GaussianPumping() if 'pumping' not in kwargs else kwargs['pumping']
         kwargs['num_nodes'] = 40 if 'num_nodes' not in kwargs else kwargs['num_nodes']
         kwargs['num_iters'] = 1000 if 'num_iters' not in kwargs else kwargs['num_iters']
+        kwargs['solver'] = 'Solver2D' if 'solver' not in kwargs else kwargs['solver']
 
         if type(kwargs['u0']) in (int, float, complex):
             kwargs['u0'] = kwargs['u0'] * ones((kwargs['num_nodes'], kwargs['num_nodes']))
 
         if kwargs.get('reservoir_eval') == True:
+            kwargs['solver'] = 'SolverCoupledNls2D'
             return ModelCoupledNls2D(**kwargs)
         else:
             return Model2D(**kwargs)
@@ -146,6 +148,7 @@ class AbstractModel(object):
         phi0 = sqrt(1.0 / (t0 * self.originals['g']))
         x0 = sqrt(hbar * t0 / (2 * m_0))
         n0 = 2.0 / (self.originals['R'] * t0)
+        p0 = n0 * self.originals['gamma_R']
 
         # NLS equation coeficients
         self.coeffs[0] = 1.0  # \partial_t
@@ -157,7 +160,7 @@ class AbstractModel(object):
 
         # Reservoir equation coefficients
         self.coeffs[10] = 0.0  # \parital_t
-        self.coeffs[11] = 1.0 / (n0 * self.originals['gamma_R'])  # pumping coefficient
+        self.coeffs[11] = 1.0  # pumping coefficient: force dimensionless pumping
         self.coeffs[12] = 1.0  # damping
         self.coeffs[13] = self.originals['R'] * phi0 ** 2 / self.originals['gamma_R']  # interaction term
         self.coeffs[14] = 0.0  # diffusive term
@@ -186,6 +189,7 @@ class AbstractModel(object):
         phi0 = sqrt(1.0 / (t0 * self.originals['g']))
         x0 = sqrt(hbar * t0 / (2 * m_0))
         n0 = 2.0 / (self.originals['R'] * t0)
+        p0 = n0 * self.originals['gamma_R']
         mu0 = phi0 / t0
 
         scales = {
@@ -194,6 +198,7 @@ class AbstractModel(object):
             'n': n0,
             'phi': phi0,
             'mu': mu0,
+            'p': p0,
         }
 
         return scales[scale] if scale in scales else None
@@ -336,18 +341,15 @@ class Model2D(AbstractModel):
     def __init__(self, *args, **kwargs):
         super(Model2D, self).__init__(*args, **kwargs)
 
-        self.solver = Solver2D(self)
-
-
-class ModelCoupledNls2D(Model2D):
-    """Model that is NLS equation with reservoir on two dimensional grid. Solver of the model supports time evolution
-    of reservoir density.
-    """
-
-    def __init__(self, *args, **kwargs):
-        super(ModelCoupledNls2D, self).__init__(*args, **kwargs)
-
-        self.solver = SolverCoupledNls2D(self)
+        solver_name = kwargs.get('solver') 
+        if solver_name == 'Solver2D':
+            self.solver = Solver2D(self)
+        elif solver_name == 'SolverCoupledNls2D':
+            self.solver = SolverCoupledNls2D(self)
+        elif solver_name == 'SolverDampingNls2D':
+            self.solver = SolverDampingNls2D(self)
+        else:
+            raise ValueError('Solver is not passed!')
 
 
 class Solution(object):
@@ -499,6 +501,8 @@ class Solution(object):
             ax.imshow(value[0], extent=extent)
             ax.contour(gx, gy, value[1].real, [0.0], colors='red', extent=extent)
             ax.contour(gx, gy, value[1].imag, [0.0], colors='blue', extent=extent)
+
+            fig.colorbar(ax.get_images()[0])
         
         if 'stream' in kwargs and kwargs['stream']:
             stream_plot(1, (u, angle(self.solution)), 'phase gradient', 'Condensate streams', ('x', 'y'))

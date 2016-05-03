@@ -5,6 +5,7 @@
 
 from __future__ import absolute_import, print_function
 from time import time
+from numpy import linspace, meshgrid, tanh
 
 from .native import nls
 from .model import Solution
@@ -63,7 +64,7 @@ class Solver1D(AbstractSolver):
         super(Solver1D, self).__init__(model)
 
     def solve(self, *args, **kwargs):
-        return nls.solve_nls(*args, **kwargs)
+        return nls.solve_nls_1d(*args, **kwargs)
 
     def chemicalPotentialRoutine(self, *args, **kwargs):
         return nls.chemical_potential_1d(*args, **kwargs)
@@ -114,3 +115,47 @@ class SolverCoupledNls2D(Solver2D):
 
     def solve(self, *args, **kwargs):
         return nls.solve_coupled_nls_2d(*args, **kwargs)
+
+
+class SolverDampingNls2D(Solver2D):
+
+    def __init__(self, model, factor=1.0, slope=3.0, xmargin=0.2, ymargin=0.2):
+        super(SolverDampingNls2D, self).__init__(model)
+
+        self.factor = factor
+        self.slope = slope
+        self.xmargin = xmargin
+        self.ymargin = ymargin
+
+    def __call__(self, num_iters=None):
+        if num_iters:
+            self.model.setNumberOfIterations(num_iters)
+
+        nodes = self.model.getNumberOfNodes()
+        dx = dy = nodes * self.model.getSpatialStep() / 2.0
+        gt = linspace(-dx, +dx, nodes)
+        ox = -(1.0 - self.xmargin) * dx
+        oy = -(1.0 - self.ymargin) * dy
+        gx, gy = meshgrid(gt, gt)
+        damping = 1.0 - 1.0j * self.factor * ( \
+            0.5 * (2.0 + tanh(self.slope * (ox + gx)) + tanh(self.slope * (ox - gx))) + \
+            0.5 * (2.0 + tanh(self.slope * (oy + gy)) + tanh(self.slope * (oy - gy))))
+
+        self.elapsed_time = -time()
+        self.solution = Solution(self.model)
+        self.solution.setSolution(self.solve(
+            self.model.getTimeStep(),
+            self.model.getSpatialStep(),
+            self.model.getApproximationOrder(),
+            self.model.getNumberOfIterations(),
+            self.model.getPumping(),
+            self.model.getCoefficients(),
+            self.model.getInitialSolution(),
+            damping))
+        self.elapsed_time += time()
+        self.solution.setElapsedTime(self.elapsed_time)
+
+        return self.solution
+
+    def solve(self, *args, **kwargs):
+        return nls.solve_damping_nls_2d(*args, **kwargs)

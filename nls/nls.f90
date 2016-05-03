@@ -19,8 +19,8 @@ module nls
     public :: rbbmv_o3, rbbmv_o5, rbbmv_o7, rbbmv, rgbmv
     public :: revervoir, revervoir_2d
     public :: hamiltonian, hamiltonian_2d, infinit_gen_2d
-    public :: runge_kutta, runge_kutta_2d, runge_kutta_coupled_nls_2d
-    public :: solve_nls_1d, solve_nls_2d, solve_coupled_nls_2d
+    public :: runge_kutta, runge_kutta_2d, runge_kutta_coupled_nls_2d, runge_kutta_damping_2d
+    public :: solve_nls_1d, solve_nls_2d, solve_coupled_nls_2d, solve_damping_nls_2d
     public :: chemical_potential_1d, chemical_potential_2d
 
 contains
@@ -989,6 +989,61 @@ contains
         call make_laplacian_2d(n, order, dx, blocks, orders)
         call runge_kutta_coupled_nls_2d(dt, t0, u0, n, blocks, orders, order, iters, u, v, pumping, coeffs)
     end subroutine solve_coupled_nls_2d
+
+    !   Damping layer
+    subroutine runge_kutta_damping_2d(dt, t0, u0, n, blocks, orders, order, iters, u, pumping, coeffs, damping)
+        implicit none
+
+        integer, intent(in) :: n, order, iters
+        integer, intent(in), dimension(order) :: orders
+        real(sp), intent(in) :: dt, t0
+        real(sp), intent(in), dimension(23) :: coeffs
+        real(sp), intent(in), dimension(n, 2 * order - 1) :: blocks
+        real(sp), intent(in), dimension(n, n) :: pumping
+        complex(sp), intent(in), dimension(n, n) :: u0
+        complex(sp), intent(out), dimension(n, n) :: u
+        complex(sp), intent(in), dimension(n, n) :: damping
+
+        integer :: i
+        real(sp) :: t
+        complex(sp), dimension(n, n) :: k1, k2, k3, k4
+
+        u = u0
+        t = t0
+
+        do i = 1, iters
+            call hamiltonian_2d(pumping, coeffs, u + 0. * dt / 2, k1, blocks, orders, order, n)
+            k1 = damping * k1
+            call hamiltonian_2d(pumping, coeffs, u + k1 * dt / 2, k2, blocks, orders, order, n)
+            k2 = damping * k2
+            call hamiltonian_2d(pumping, coeffs, u + k2 * dt / 2, k3, blocks, orders, order, n)
+            k3 = damping * k3
+            call hamiltonian_2d(pumping, coeffs, u + k3 * dt / 1, k4, blocks, orders, order, n)
+            k4 = damping * k4
+
+            u = u + (k1 + 2 * k2 + 2 * k3 + k4) * dt / 6
+            t = t + dt
+        end do
+    end subroutine runge_kutta_damping_2d
+
+    subroutine solve_damping_nls_2d(dt, dx, n, order, iters, pumping, coeffs, u0, u, damping)
+        implicit none
+
+        integer, intent(in) :: n, order, iters
+        real(sp), intent(in) :: dt, dx
+        real(sp), intent(in), dimension(n, n) :: pumping
+        real(sp), intent(in), dimension(23) :: coeffs
+        complex(sp), intent(in), dimension(n, n) :: u0
+        complex(sp), intent(out), dimension(n, n) :: u
+        complex(sp), intent(in), dimension(n, n) :: damping
+
+        integer, dimension(order) :: orders
+        real(sp), parameter :: t0 = 0.0
+        real(sp), dimension(n, 2 * order - 1) :: blocks
+
+        call make_laplacian_2d(n, order, dx, blocks, orders)
+        call runge_kutta_damping_2d(dt, t0, u0, n, blocks, orders, order, iters, u, pumping, coeffs, damping)
+    end subroutine solve_damping_nls_2d
 
     subroutine chemical_potential_1d(dx, n, pumping, coeffs, u0, mu)
         implicit none
