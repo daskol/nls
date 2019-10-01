@@ -10,4 +10,4 @@ python-dateutil==2.5.2
 pytz==2016.3
 scipy
 six==1.10.0
-Werkzeug==0.14
+Werkzeug==0.15.3
