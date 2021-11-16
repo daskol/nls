@@ -1,0 +1,15 @@
+# See PEP-517 and PEP-518 for details.
+
+[build-system]
+requires = ["setuptools", "setuptools_scm[toml]>=3.4", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[tool.mypy]
+ignore_missing_imports = true
+plugins = "numpy.typing.mypy_plugin"
+show_column_numbers = true
+show_error_codes = true
+show_error_context = false
+
+[tool.setuptools_scm]
+write_to = "nls/version.py"
